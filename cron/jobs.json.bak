@@ -1,0 +1,43 @@
+{
+  "version": 1,
+  "jobs": [
+    {
+      "id": "e69daa60-be4a-461a-8db9-09237f83facd",
+      "agentId": "main",
+      "name": "heartbeat",
+      "description": "Periodic heartbeat - silent background tasks",
+      "enabled": true,
+      "createdAtMs": 1773778710953,
+      "updatedAtMs": 1773783541597,
+      "schedule": {
+        "kind": "every",
+        "everyMs": 600000,
+        "anchorMs": 1773778710953
+      },
+      "sessionTarget": "isolated",
+      "wakeMode": "now",
+      "payload": {
+        "kind": "agentTurn",
+        "message": "SYSTEM: heartbeat",
+        "timeoutSeconds": 120,
+        "lightContext": true,
+        "model": "kimi-k2.5-nvidia"
+      },
+      "delivery": {
+        "mode": "none",
+        "channel": "last"
+      },
+      "state": {
+        "nextRunAtMs": 1774190910953,
+        "lastRunAtMs": 1773783511094,
+        "lastRunStatus": "ok",
+        "lastStatus": "ok",
+        "lastDurationMs": 30503,
+        "lastDeliveryStatus": "not-delivered",
+        "consecutiveErrors": 0,
+        "lastDelivered": false,
+        "runningAtMs": 1774190910954
+      }
+    }
+  ]
+}

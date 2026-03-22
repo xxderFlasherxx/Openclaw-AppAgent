@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "socket": {
+    "path": "/home/vboxuser/.openclaw/exec-approvals.sock",
+    "token": "6bCMKJWplpAa3BK0lwiueUbOT6shM5_p"
+  },
+  "defaults": {},
+  "agents": {
+    "main": {
+      "security": "full",
+      "ask": "off"
+    }
+  }
+}

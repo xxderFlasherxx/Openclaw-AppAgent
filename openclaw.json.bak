@@ -1,0 +1,140 @@
+{
+  "meta": {
+    "lastTouchedVersion": "2026.3.13",
+    "lastTouchedAt": "2026-03-17T19:41:25.926Z"
+  },
+  "models": {
+    "mode": "merge",
+    "providers": {
+      "nvidia": {
+        "baseUrl": "https://integrate.api.nvidia.com/v1",
+        "apiKey": "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",
+        "api": "openai-completions",
+        "models": [
+          {
+            "id": "moonshotai/kimi-k2.5",
+            "name": "kimi-k2.5-nvidia",
+            "reasoning": false,
+            "input": [
+              "text"
+            ],
+            "cost": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0
+            },
+            "contextWindow": 200000,
+            "maxTokens": 8192
+          }
+        ]
+      },
+      "ollama_cloud": {
+        "baseUrl": "https://ollama.com/v1",
+        "apiKey": "4c18dad4048c4e52b84b9c613e63101b.dnsdNPbmk60VlY5pkTzqheY4",
+        "api": "openai-completions",
+        "models": [
+          {
+            "id": "kimi-k2.5",
+            "name": "kimi-k2.5-ollama",
+            "reasoning": false,
+            "input": [
+              "text"
+            ],
+            "cost": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0
+            },
+            "contextWindow": 200000,
+            "maxTokens": 8192
+          }
+        ]
+      }
+    }
+  },
+  "agents": {
+    "defaults": {
+      "model": {
+        "primary": "kimi-k2.5-ollama"
+      },
+      "models": {
+        "nvidia/moonshotai/kimi-k2.5": {
+          "alias": "kimi-k2.5-nvidia"
+        },
+        "ollama_cloud/kimi-k2.5": {
+          "alias": "kimi-k2.5-ollama"
+        }
+      },
+      "workspace": "/home/vboxuser/workspace",
+      "heartbeat": {
+        "every": "10m"
+      }
+    },
+    "list": [
+      {
+        "id": "main",
+        "tools": {
+          "profile": "coding",
+          "alsoAllow": [
+            "browser",
+            "canvas",
+            "message",
+            "gateway",
+            "nodes",
+            "agents_list",
+            "tts",
+            "read",
+            "write",
+            "edit",
+            "apply_patch",
+            "exec",
+            "process",
+            "web_search",
+            "web_fetch",
+            "memory_search",
+            "memory_get",
+            "sessions_spawn",
+            "sessions_yield",
+            "subagents",
+            "cron",
+            "image"
+          ]
+        }
+      }
+    ]
+  },
+  "tools": {
+    "profile": "coding"
+  },
+  "commands": {
+    "native": "auto",
+    "nativeSkills": "auto",
+    "restart": true,
+    "ownerDisplay": "raw"
+  },
+  "channels": {
+    "telegram": {
+      "enabled": true,
+      "dmPolicy": "pairing",
+      "botToken": "8727972825:AAEPzAbWrKDewQxAeqKgUvEVTOea0Zz_gUo",
+      "groupPolicy": "open",
+      "streaming": "off",
+      "heartbeat": {
+        "showOk": true,
+        "showAlerts": true,
+        "useIndicator": true
+      }
+    }
+  },
+  "gateway": {
+    "port": 18789,
+    "mode": "local",
+    "bind": "loopback",
+    "auth": {
+      "mode": "none",
+      "token": ""
+    }
+  }
+}

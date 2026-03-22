@@ -1,0 +1,43 @@
+{
+  "version": 1,
+  "jobs": [
+    {
+      "id": "e69daa60-be4a-461a-8db9-09237f83facd",
+      "agentId": "main",
+      "name": "heartbeat",
+      "description": "Periodic heartbeat - silent background tasks",
+      "enabled": true,
+      "createdAtMs": 1773778710953,
+      "updatedAtMs": 1774191030967,
+      "schedule": {
+        "kind": "every",
+        "everyMs": 600000,
+        "anchorMs": 1773778710953
+      },
+      "sessionTarget": "isolated",
+      "wakeMode": "now",
+      "payload": {
+        "kind": "agentTurn",
+        "message": "SYSTEM: heartbeat",
+        "timeoutSeconds": 120,
+        "lightContext": true,
+        "model": "kimi-k2.5-nvidia"
+      },
+      "delivery": {
+        "mode": "none",
+        "channel": "last"
+      },
+      "state": {
+        "nextRunAtMs": 1774191510955,
+        "lastRunAtMs": 1774190910955,
+        "lastRunStatus": "error",
+        "lastStatus": "error",
+        "lastDurationMs": 120012,
+        "lastDeliveryStatus": "not-requested",
+        "consecutiveErrors": 1,
+        "lastError": "cron: job execution timed out",
+        "lastErrorReason": "timeout"
+      }
+    }
+  ]
+}
