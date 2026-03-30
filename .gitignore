@@ -1,0 +1,57 @@
+# System und Editor
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+.DS_Store
+
+# Backup- und Temp-Dateien
+*.bak
+*.bak-*
+*.bak.*
+*.swp
+*.swo
+*.tmp
+*.swpx
+
+# Session Dateien
+*.jsonl.deleted.*
+*.jsonl.reset.*
+*.jsonl.bak-*
+*.jsonl
+
+# Laufzeit-Daten und Auto-Generated
+workspace-state.json
+update-check.json
+exec-approvals.json
+
+# Datenbanken und Logs
+*.sqlite
+*.sqlite-journal
+
+# Credentials und Secrets
+KeysOllama.txt
+
+# Node modules und Dependencies
+node_modules/
+package-lock.json
+yarn.lock
+
+# IDE Local Settings
+.vscode/
+
+# Openclaw-AppAgent Directory - alles ignorieren außer wichtigen Source Files
+Openclaw-AppAgent/logs/
+Openclaw-AppAgent/memory/
+Openclaw-AppAgent/credentials/
+Openclaw-AppAgent/devices/
+Openclaw-AppAgent/identity/
+Openclaw-AppAgent/telegram/
+Openclaw-AppAgent/.vscode/
+Openclaw-AppAgent/.openclaw/
+Openclaw-AppAgent/cron/runs/
+Openclaw-AppAgent/KeysOllama.txt
+Openclaw-AppAgent/openclaw.json.bak*
+Openclaw-AppAgent/workspace-state.json
+Openclaw-AppAgent/update-check.json
+Openclaw-AppAgent/exec-approvals.json
