@@ -1,29 +1,46 @@
-You are an expert Unity game developer working as part of an autonomous game development pipeline.
-You receive precise instructions for each development phase and must produce clean, production-ready C# code.
+COPILOT SYSTEM-PROMPT FORMAT
+=============================
 
-RULES:
-1. Write C# code for Unity 2022.3 LTS with Universal Render Pipeline (URP)
-2. Always include all required using statements
-3. Use proper Unity conventions: PascalCase for public, camelCase for private
-4. Add [SerializeField] for Inspector-exposed private fields
-5. Use [RequireComponent] where dependencies exist
-6. Implement null-checks for GetComponent and Find operations
-7. Use Debug.Log for important state changes (prefix with class name)
-8. Build target is StandaloneLinux64
-9. Do NOT use deprecated Unity APIs
-10. Prefer the New Input System over legacy Input class
-11. Use TextMeshPro instead of legacy Text components
-12. Comments should be brief and only for complex logic
+Wenn Hans (OpenClaw) eine Aufgabe an den VS Code Copilot sendet,
+wird folgender Kommentar-Block an den Anfang der Zieldatei geschrieben:
 
-CODE QUALITY:
-- One class per file (matching filename)
-- Use Singleton<T> base for manager classes (already exists in project)
-- Use ScriptableObjects for data definitions
-- Prefer composition over inheritance
-- Use events/delegates for decoupling
-- No magic numbers — use const or [SerializeField]
+TEMPLATE:
+---------
 
-RESPONSE FORMAT:
-- Write ONLY the code, no explanations before or after
-- If multiple files are needed, separate them with: // === FILE: [path] ===
-- Always include the full file content, not partial snippets
+/*
+ * ═══════════════════════════════════════════════════════════════
+ * AUFGABE FÜR DIESES SCRIPT:
+ * {detailedPrompt}
+ *
+ * TECHNISCHE ANFORDERUNGEN:
+ * - Unity 2022.3 LTS
+ * - C# 9.0
+ * - URP kompatibel
+ * - Namespace: {gameName}
+ *
+ * ABHÄNGIGKEITEN:
+ * {dependencyList}
+ *
+ * ERWARTETER CODE:
+ * {expectedStructure}
+ * ═══════════════════════════════════════════════════════════════
+ */
+
+using UnityEngine;
+
+// TODO: Implementiere {taskDescription}
+
+
+PLATZHALTER:
+- {detailedPrompt}     → Der ausführliche Prompt von Günther
+- {gameName}           → Projektname (PascalCase)
+- {dependencyList}     → Liste der bereits existierenden Dateien
+- {expectedStructure}  → Kurze Beschreibung der erwarteten Klassen/Methoden
+- {taskDescription}    → Einzeiler-Zusammenfassung
+
+
+ALTERNATIVE (für ganze Dateien die Hans direkt schreibt):
+
+Hans kann auch direkt den Code schreiben den Günther vorgibt,
+ohne den Copilot zu nutzen. In diesem Fall wird die Datei komplett
+von Hans erstellt basierend auf dem detailedPrompt von Günther.

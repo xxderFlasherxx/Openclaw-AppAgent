@@ -1,108 +1,49 @@
-VS CODE COPILOT MODES REFERENZ
-================================
+VS CODE COPILOT STEUERUNGS-METHODEN
+====================================
 
-ÜBERSICHT DER COPILOT-INTERAKTIONS-MODI:
+METHODE 1: Agent Mode (VS Code 2025+)
+--------------------------------------
+- Copilot hat seit 2025 einen "Agent Mode"
+- Kann über VS Code Chat aufgetragen werden
+- Arbeitet autonom: erstellt/bearbeitet Dateien, führt Befehle aus
+- Aufruf: Cmd/Ctrl+Shift+I → Chat öffnen → Aufgabe eingeben
+- Kann auch über .github/copilot-instructions.md gesteuert werden
 
-1. INLINE COMPLETION (Standard)
-   - Copilot ergänzt Code während man tippt
-   - Nicht direkt steuerbar durch Hans
-   - Nicht geeignet für autonomes System
+.github/copilot-instructions.md Beispiel:
+```
+# Projekt-Anweisungen für Copilot
+- Unity 2022.3 LTS Projekt
+- C# Code Style: PascalCase für öffentliche Members
+- Verwende URP (Universal Render Pipeline)
+- Namespace: {GameName}
+```
 
-2. COPILOT CHAT (Panel)
-   - Chat-Interface in VS Code Sidebar
-   - Steuerbar per UI-Automation (xdotool)
-   - Shortcut: Ctrl+Shift+I (Linux)
-   - Kann Kontext aus offenen Dateien nutzen
+METHODE 2: Inline Chat
+-----------------------
+- Cmd/Ctrl+I → Inline-Prompt an aktueller Cursor-Position
+- Generiert Code direkt in der Datei
+- User muss Accept/Reject klicken
 
-3. COPILOT AGENT MODE (NEU - seit 2025)
-   - Der mächtigste Modus für autonome Nutzung
-   - Copilot kann eigenständig:
-     * Dateien erstellen und bearbeiten
-     * Terminal-Befehle ausführen
-     * Mehrere Dateien gleichzeitig bearbeiten
-     * Fehler erkennen und korrigieren
-   - Aktivierung: Im Chat "@workspace" oder Agent Mode Switch
-   - Shortcut: Ctrl+Shift+I → dann Agent Mode aktivieren
+METHODE 3: Copilot CLI (gh copilot)
+------------------------------------
+- gh copilot suggest -t code "[prompt]"
+- gh copilot explain "[code]"
+- Requires: gh Extension installiert
 
-4. COPILOT EDITS (Multi-File)
-   - Bearbeitet mehrere Dateien gleichzeitig
-   - Gut für Refactoring und Phase-übergreifende Änderungen
-   - Zugang über Copilot Chat Panel
+METHODE 4: Datei-basiert (unser Hauptansatz)
+---------------------------------------------
+- Hans erstellt Dateien mit detaillierten Kommentaren
+- Copilot vervollständigt den Code basierend auf Kommentaren
+- Kein UI-Zugriff nötig
+- Funktioniert zuverlässig wenn Kommentare gut formuliert sind
 
-EMPFOHLENER ANSATZ FÜR DAS GAMEDEV-SYSTEM:
+METHODE 5: .copilot-prompt.md
+------------------------------
+- Datei im Projektordner mit Anweisungen
+- Copilot berücksichtigt diese bei Vorschlägen
+- Gut für projektweite Anweisungen
 
-  PRIMÄR: Datei-basierte Prompt-Injektion
-  =========================================
-
-  Hans erstellt eine Datei mit Copilot-Anweisungen im Projekt:
-
-  Schritt 1: .github/copilot-instructions.md erstellen
-    → Enthält den System-Prompt (aus copilot-system-prompt.txt)
-    → Copilot liest diese Datei automatisch als Kontext
-
-  Schritt 2: .copilot-prompt.md im Projektroot erstellen
-    → Enthält den aktuellen Phase-Prompt von Günther
-    → Copilot Agent Mode liest dies als Aufgabe
-
-  Schritt 3: VS Code öffnen mit dem Projektordner
-    code /home/vboxuser/GameDev-Projekte/[GameName]
-
-  Schritt 4: xdotool nutzen um Copilot Chat zu öffnen
-    xdotool key ctrl+shift+i
-    sleep 2
-
-  Schritt 5: Prompt per xdotool eintippen
-    xdotool type --delay 10 "Lies die .copilot-prompt.md und führe die Aufgabe aus"
-    xdotool key Return
-
-  Schritt 6: Warten + Dateien überwachen
-    → Hans prüft periodisch ob neue Dateien erstellt wurden
-    → Hans prüft ob die erwarteten Dateien vorhanden sind
-
-  FALLBACK: Direkter Code-Ansatz
-  ================================
-
-  Falls Copilot nicht reagiert, kann Hans:
-  1. Den Prompt direkt an Günther (Kimi K2.5) senden
-  2. Günther den Code komplett schreiben lassen
-  3. Hans schreibt den Code per write/edit Tool in die Dateien
-
-  HINWEIS: Dieser Fallback umgeht den Copilot komplett.
-  Günther (Kimi K2.5) ist weniger gut im Code-Schreiben als
-  Claude Sonnet 4.6, daher ist dies nur der Notfall-Plan.
-
-COPILOT INSTRUCTIONS DATEI:
-
-  Pfad: [Projekt]/.github/copilot-instructions.md
-
-  Diese Datei wird von VS Code Copilot automatisch gelesen und
-  beeinflusst alle Copilot-Interaktionen im Projekt.
-
-  Hans sollte diese Datei bei Projektstart erstellen mit:
-  - Unity-Version und Ziel-Plattform
-  - Code-Conventions
-  - Projekt-spezifische Infos
-  - Aktuelle Phase und Kontext
-
-PROMPT-DATEI FORMAT:
-
-  Pfad: [Projekt]/.copilot-prompt.md
-
-  ```markdown
-  # Copilot Aufgabe: Phase [N] - [Name]
-
-  ## Kontext
-  [Was bisher erstellt wurde]
-
-  ## Aufgabe
-  [Detaillierter Prompt von Günther]
-
-  ## Erwartete Dateien
-  - [Pfad/Datei1.cs]
-  - [Pfad/Datei2.cs]
-
-  ## Technische Anforderungen
-  - Unity 2022.3 LTS, URP
-  - C#, New Input System
-  - TextMeshPro für UI
-  ```
+FÜR UNSER SYSTEM EMPFOHLEN:
+- Primär: Methode 4 (Datei-basiert) → Hans schreibt Dateien mit Prompts
+- Sekundär: Methode 1 (Agent Mode) → wenn UI-Automation verfügbar
+- Fallback: Hans generiert Code selbst über Günther (Ollama Cloud)

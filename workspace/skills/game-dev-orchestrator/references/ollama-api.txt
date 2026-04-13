@@ -1,76 +1,39 @@
 OLLAMA CLOUD API REFERENZ (für Hans/OpenClaw)
-===============================================
+==============================================
 
 Endpunkt: https://ollama.com/v1/chat/completions
-Auth: Bearer [API_KEY aus openclaw.json → providers.ollama_cloud.apiKey]
+Auth: Bearer [API_KEY aus openclaw.json → models.providers.ollama_cloud.apiKey]
 Format: OpenAI-kompatibel
 
-BEISPIEL-AUFRUF (den Hans über web_fetch machen kann):
+Beispiel-Aufruf (den Hans über web_fetch machen kann):
 
-  POST https://ollama.com/v1/chat/completions
-  Headers:
-    Authorization: Bearer [API_KEY]
-    Content-Type: application/json
-  Body:
-    {
-      "model": "kimi-k2.5",
-      "messages": [
-        {"role": "system", "content": "[System Prompt aus prompts/ laden]"},
-        {"role": "user", "content": "[User Prompt mit konkreter Aufgabe]"}
-      ],
-      "temperature": 0.3,
-      "response_format": {"type": "json_object"}
-    }
-
-KONFIGURATIONSHINWEISE:
-  - response_format: {"type": "json_object"} erzwingt JSON-Ausgabe
-  - temperature: 0.3 für konsistente, technische Antworten
-  - Modell "kimi-k2.5" ist Günther (Architekt/Planer)
-  - Max Context: 200k tokens
-  - maxTokens: 8192 (konfiguriert in openclaw.json)
-
-VERWENDUNG IN OPENCLAW:
-  Hans kann den API-Call über das web_fetch Tool ausführen:
-
-  Schritt 1: System-Prompt aus Datei laden (z.B. prompts/architect-system.txt)
-  Schritt 2: User-Prompt zusammenbauen (Genre-Kontext + User-Wunsch)
-  Schritt 3: web_fetch POST an den Endpunkt
-  Schritt 4: JSON-Response parsen
-  Schritt 5: Ergebnis in .plan/ Ordner speichern
-
-FEHLERBEHANDLUNG:
-  - HTTP 200: Erfolg → response.choices[0].message.content
-  - HTTP 401: API-Key ungültig → neu konfigurieren
-  - HTTP 429: Rate Limit → 30 Sekunden warten, erneut versuchen
-  - HTTP 500: Server-Fehler → 60 Sekunden warten, erneut versuchen
-  - Timeout: Nach 120 Sekunden abbrechen, erneut versuchen (max 3x)
-
-RESPONSE-PARSING:
-  Die Antwort kommt als JSON:
-  {
-    "choices": [
-      {
-        "message": {
-          "role": "assistant",
-          "content": "{...}"  // JSON-String - muss nochmal geparst werden!
-        }
-      }
-    ]
-  }
-
-  ACHTUNG: content ist ein JSON-String INNERHALB von JSON.
-  Also: JSON.parse(response.choices[0].message.content)
-
-VERBINDUNGSTEST:
-  Sende folgende Nachricht um die Verbindung zu testen:
+POST https://ollama.com/v1/chat/completions
+Headers:
+  Authorization: Bearer [API_KEY]
+  Content-Type: application/json
+Body:
   {
     "model": "kimi-k2.5",
     "messages": [
-      {"role": "system", "content": "Antworte NUR mit dem exakten JSON."},
-      {"role": "user", "content": "Antworte mit: {\"status\": \"ok\", \"agent\": \"Günther\", \"ready\": true}"}
+      {"role": "system", "content": "[System Prompt]"},
+      {"role": "user", "content": "[User Prompt]"}
     ],
-    "temperature": 0,
+    "temperature": 0.3,
     "response_format": {"type": "json_object"}
   }
 
-  Erwartete Antwort: {"status": "ok", "agent": "Günther", "ready": true}
+WICHTIG: response_format: json_object erzwingt JSON-Ausgabe
+WICHTIG: temperature 0.3 für konsistente, technische Antworten
+
+Verfügbare Modelle:
+- kimi-k2.5 (Standard, 200k Kontext, kostenlos)
+
+Fehlerbehandlung:
+- HTTP 200: Erfolg → Antwort in choices[0].message.content
+- HTTP 401: API-Key ungültig
+- HTTP 429: Rate Limit → 30 Sekunden warten und erneut versuchen
+- HTTP 500+: Server-Fehler → 10 Sekunden warten und erneut versuchen
+
+Test-Request (um Verbindung zu prüfen):
+  System: "Antworte nur mit validem JSON."
+  User: "Antworte mit: {\"status\": \"ok\", \"message\": \"Günther bereit\"}"

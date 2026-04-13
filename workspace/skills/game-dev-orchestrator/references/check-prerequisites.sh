@@ -69,7 +69,7 @@ fi
 
 # --- 3. OpenClaw Workspace ---
 echo "[3/8] OpenClaw Workspace..."
-WORKSPACE="/home/vboxuser/workspace"
+WORKSPACE="/home/vboxuser/Documents/Openclaw-AppAgent/workspace"
 if [ -d "$WORKSPACE" ]; then
     check "Workspace existiert: $WORKSPACE" "ok"
 else

@@ -1,7 +1,7 @@
 {
   "paths": {
     "projectsRoot": "/home/vboxuser/GameDev-Projekte",
-    "openclawWorkspace": "/home/vboxuser/workspace",
+    "openclawWorkspace": "/home/vboxuser/Documents/Openclaw-AppAgent/workspace",
     "templatesDir": "/home/vboxuser/GameDev-Projekte/_templates",
     "unityEditor": "",
     "vscode": "code"

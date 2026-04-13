@@ -1,97 +1,36 @@
 ENTSCHEIDUNGSMATRIX: COPILOT-STEUERUNG
 =======================================
 
-Hans (OpenClaw) muss den VS Code Copilot steuern können, um Günthers
-Prompts in Code umzusetzen. Hier sind die verfügbaren Ansätze:
+| Ansatz          | Komplexität | Zuverlässigkeit | Autonomie | Linux-Support |
+|-----------------|-------------|-----------------|-----------|---------------|
+| Datei-basiert   | Niedrig     | Hoch            | Mittel    | Ja            |
+| Agent Mode      | Mittel      | Hoch            | Hoch      | Ja            |
+| Copilot CLI     | Mittel      | Hoch            | Hoch      | Ja            |
+| xdotool         | Mittel      | Mittel          | Hoch      | Ja (X11)      |
+| Direct API      | Niedrig     | Hoch            | Hoch      | Ja            |
 
-ANSÄTZE IM VERGLEICH:
+EMPFOHLENE REIHENFOLGE:
 
-| Ansatz              | Komplexität | Zuverlässigkeit | Autonomie | Empfehlung |
-|---------------------|-------------|-----------------|-----------|------------|
-| A: Datei-basiert    | Niedrig     | Hoch            | Hoch      | PRIMÄR     |
-| B: VS Code CLI      | Niedrig     | Hoch            | Mittel    | ERGÄNZEND  |
-| C: Copilot CLI (gh) | Mittel      | Mittel          | Mittel    | OPTIONAL   |
-| D: Agent Mode       | Mittel      | Hoch            | Hoch      | PRIMÄR     |
-| E: UI-Automation    | Hoch        | Niedrig         | Hoch      | FALLBACK   |
-| F: Günther direkt   | Niedrig     | Mittel          | Hoch      | NOTFALL    |
+1. PRIMÄR: Datei-basierter Ansatz
+   - Hans schreibt Dateien mit detaillierten Kommentaren/Prompts
+   - VS Code Copilot vervollständigt automatisch
+   - Einfachste Implementation, keine UI-Automation nötig
+   - NACHTEIL: Erfordert ggf. manuelle Bestätigung durch User
 
+2. SEKUNDÄR: Direct API (Hans ruft Günther für Code-Generierung)
+   - Hans nutzt Ollama Cloud API direkt für Code-Generierung
+   - Günther generiert den C#-Code basierend auf dem Phase-Prompt
+   - Hans schreibt den generierten Code in die Datei
+   - VORTEIL: Vollständig autonom, keine UI nötig
+   - NACHTEIL: Kimi K2.5 ist nicht so gut wie Claude für Code
 
-EMPFOHLENE STRATEGIE (Prioritätsreihenfolge):
+3. FALLBACK: xdotool UI-Automation
+   - Falls kein anderer Weg funktioniert
+   - Simuliert Tastatureingaben in VS Code
+   - NACHTEIL: Fragil, timing-abhängig, X11 erforderlich
 
-1. PRIMÄR: Ansatz A + D (Datei-basiert + Agent Mode)
-   =====================================================
-   - Hans erstellt .github/copilot-instructions.md (Projekt-Kontext)
-   - Hans erstellt .copilot-prompt.md (aktuelle Phase-Aufgabe)
-   - Hans öffnet VS Code: code [projektordner]
-   - Hans aktiviert Copilot Agent Mode per xdotool: Ctrl+Shift+I
-   - Hans tippt: "Lies .copilot-prompt.md und führe die Aufgabe aus"
-   - Hans wartet und überwacht Dateiänderungen
-
-   VORTEILE:
-   + Copilot hat vollen Projekt-Kontext
-   + Agent Mode kann eigenständig Dateien erstellen
-   + Einfach zu implementieren
-   + Zuverlässig
-
-   NACHTEILE:
-   - Braucht X11 Display für xdotool
-   - Timing-abhängig (Delays)
-
-2. ERGÄNZEND: Ansatz B (VS Code CLI)
-   ====================================
-   - code --goto [datei:zeile] für Navigation
-   - code [ordner] für Projekt öffnen
-   - .vscode/tasks.json für Build-Automation
-
-3. FALLBACK: Ansatz E (UI-Automation / xdotool)
-   ===============================================
-   - Nur wenn Agent Mode nicht funktioniert
-   - xdotool für Tastatur-Simulation
-   - Siehe: ui-automation.txt für Details
-
-4. NOTFALL: Ansatz F (Günther schreibt Code)
-   ============================================
-   - Falls Copilot komplett ausfällt
-   - Hans sendet Code-Aufgabe an Günther (Kimi K2.5)
-   - Günther schreibt den Code direkt
-   - Hans speichert den Code in die Dateien
-   - QUALITÄTSEINBUSSE: Kimi K2.5 < Claude Sonnet 4.6 für Code
-
-
-ENTSCHEIDUNGSLOGIK FÜR HANS:
-
-  function chooseApproach():
-    // Prüfe ob VS Code läuft
-    if NOT vscodeRunning():
-      exec("code /home/vboxuser/GameDev-Projekte/[game]")
-      wait(5000)
-
-    // Primärer Ansatz: Datei + Agent Mode
-    writeFile(".copilot-prompt.md", guentherPrompt)
-    writeFile(".github/copilot-instructions.md", systemPrompt)
-
-    success = tryCopilotAgentMode(prompt)
-    if success:
-      return "agent-mode"
-
-    // Fallback 1: xdotool direkt
-    success = tryXdotoolDirect(prompt)
-    if success:
-      return "xdotool"
-
-    // Fallback 2: Günther macht den Code
-    code = askGuentherForCode(prompt)
-    writeCodeToFiles(code)
-    return "guenther-direct"
-
-ERKENNUNG OB COPILOT ERFOLGREICH WAR:
-
-  Hans prüft nach dem Absenden des Prompts:
-  1. Erwartete Dateien vorhanden? (aus master-plan.json)
-  2. Dateien nicht leer?
-  3. Dateien enthalten sinnvollen C#-Code? (using UnityEngine)
-  4. Unity-Kompilierung erfolgreich? (keine Fehler in build.log)
-
-  Timeout: 120 Sekunden nach Prompt-Absendung
-  Retry: Max 3 Versuche pro Phase
-  Eskalation: Nach 3 Fehlversuchen → User per Telegram informieren
+ENTSCHEIDUNG FÜR UNSER SYSTEM:
+→ Starte mit Kombination aus 1 + 2
+→ Hans erstellt Dateien MIT komplettem Code (von Günther generiert)
+→ VS Code Copilot dient als Ergänzung/Review
+→ xdotool nur als Notfall-Fallback

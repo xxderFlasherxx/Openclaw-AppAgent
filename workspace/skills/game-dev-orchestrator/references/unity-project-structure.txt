@@ -1,0 +1,77 @@
+UNITY PROJEKT-STRUKTUR (Standard)
+==================================
+
+[GameName]/
+├── Assets/
+│   ├── Scripts/
+│   │   ├── Core/
+│   │   │   ├── GameManager.cs
+│   │   │   ├── InputManager.cs
+│   │   │   └── AudioManager.cs
+│   │   ├── Player/
+│   │   │   ├── PlayerController.cs
+│   │   │   ├── PlayerStats.cs
+│   │   │   └── PlayerInput.cs
+│   │   ├── Camera/
+│   │   │   └── CameraController.cs
+│   │   ├── UI/
+│   │   │   ├── UIManager.cs
+│   │   │   ├── HUDController.cs
+│   │   │   └── MenuController.cs
+│   │   ├── Environment/
+│   │   │   └── [Genre-spezifisch]
+│   │   ├── AI/
+│   │   │   └── [Genre-spezifisch]
+│   │   └── Utilities/
+│   │       ├── Singleton.cs
+│   │       └── ObjectPool.cs
+│   ├── Prefabs/
+│   │   ├── Player/
+│   │   ├── Enemies/
+│   │   ├── Environment/
+│   │   └── UI/
+│   ├── Materials/
+│   ├── Textures/
+│   ├── Scenes/
+│   │   ├── MainMenu.unity
+│   │   ├── GameScene.unity
+│   │   └── LoadingScene.unity
+│   ├── Audio/
+│   │   ├── Music/
+│   │   └── SFX/
+│   ├── Animations/
+│   ├── Shaders/
+│   ├── Editor/
+│   │   └── AutoCompileWatcher.cs
+│   └── Resources/
+├── ProjectSettings/
+├── Packages/
+│   └── manifest.json
+├── .plan/
+│   ├── master-plan.json
+│   ├── current-phase.json
+│   ├── phase-history.json
+│   ├── error-log.json
+│   ├── copilot-prompts.json
+│   └── unity-status.json
+├── .gitignore
+├── .editorconfig
+└── README.md
+
+
+ORDNER-ERSTELLUNG (Shell-Befehl):
+mkdir -p Assets/Scripts/{Core,Player,Camera,UI,Environment,AI,Utilities}
+mkdir -p Assets/{Prefabs,Materials,Textures,Scenes,Audio,Animations,Shaders,Editor,Resources}
+mkdir -p Assets/Audio/{Music,SFX}
+mkdir -p Assets/Prefabs/{Player,Enemies,Environment,UI}
+mkdir -p .plan
+
+
+UNITY CLI PROJEKT ERSTELLEN:
+[Unity-Editor-Pfad] -createProject [Projektpfad] -quit -batchmode -nographics
+
+Linux-Beispiel:
+/opt/unity/Editor/Unity -createProject ~/GameDev-Projekte/MeinSpiel -quit -batchmode -nographics
+
+Falls Unity CLI nicht verfügbar: Ordner manuell erstellen und
+ProjectSettings/ + Packages/manifest.json von Template kopieren.

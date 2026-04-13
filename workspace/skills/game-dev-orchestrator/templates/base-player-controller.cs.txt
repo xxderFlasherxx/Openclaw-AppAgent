@@ -1,0 +1,53 @@
+using UnityEngine;
+
+/// <summary>
+/// Basis Player-Controller. Wird vom Genre-spezifischen Controller erweitert.
+/// Unterstützt grundlegende Bewegung und Input.
+/// </summary>
+[RequireComponent(typeof(Rigidbody))]
+public class PlayerController : MonoBehaviour
+{
+    [Header("Movement Settings")]
+    [SerializeField] private float moveSpeed = 5f;
+    [SerializeField] private float rotationSpeed = 120f;
+
+    [Header("References")]
+    private Rigidbody rb;
+
+    private Vector3 moveInput;
+
+    private void Awake()
+    {
+        rb = GetComponent<Rigidbody>();
+    }
+
+    private void Update()
+    {
+        // Input erfassen
+        float horizontal = Input.GetAxisRaw("Horizontal");
+        float vertical = Input.GetAxisRaw("Vertical");
+        moveInput = new Vector3(horizontal, 0f, vertical).normalized;
+    }
+
+    private void FixedUpdate()
+    {
+        Move();
+        Rotate();
+    }
+
+    private void Move()
+    {
+        Vector3 movement = transform.forward * moveInput.z * moveSpeed * Time.fixedDeltaTime;
+        rb.MovePosition(rb.position + movement);
+    }
+
+    private void Rotate()
+    {
+        if (moveInput.x != 0f)
+        {
+            float rotation = moveInput.x * rotationSpeed * Time.fixedDeltaTime;
+            Quaternion turnOffset = Quaternion.Euler(0f, rotation, 0f);
+            rb.MoveRotation(rb.rotation * turnOffset);
+        }
+    }
+}

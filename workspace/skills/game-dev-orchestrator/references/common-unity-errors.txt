@@ -1,0 +1,62 @@
+HÄUFIGE UNITY C# FEHLER UND LÖSUNGEN
+======================================
+
+1. CS0246: The type or namespace name 'X' could not be found
+   → using-Statement fehlt oder Package nicht installiert
+   Fix: using UnityEngine; / using UnityEngine.UI; / Package Manager
+
+2. CS1061: 'Type' does not contain a definition for 'Member'
+   → Tippfehler im Methodennamen oder falsche API-Version
+   Fix: API-Dokumentation prüfen, Methodennamen korrigieren
+
+3. NullReferenceException
+   → Objekt nicht zugewiesen. GetComponent<>() oder Find() fehlgeschlagen
+   Fix: Null-Check hinzufügen, [SerializeField] im Inspector zuweisen
+
+4. CS0029: Cannot implicitly convert type 'X' to 'Y'
+   → Falscher Datentyp. Cast nötig oder Variable-Typ ändern
+   Fix: Expliziter Cast oder Typ-Änderung
+
+5. UnityException: [Object] can only be called from the main thread
+   → Async/Thread-Problem.
+   Fix: UnityMainThreadDispatcher verwenden oder Coroutine nutzen
+
+6. MissingComponentException
+   → RequireComponent-Attribut fehlt oder Komponente nicht hinzugefügt
+   Fix: [RequireComponent(typeof(Rigidbody))] hinzufügen
+
+7. StackOverflowException
+   → Endlose Rekursion. Update() ruft sich möglicherweise selbst auf
+   Fix: Rekursions-Abbruchbedingung prüfen
+
+8. SerializationException
+   → [Serializable]-Attribut fehlt oder nicht-serialisierbarer Typ
+   Fix: [System.Serializable] hinzufügen
+
+9. IndexOutOfRangeException
+   → Array-Index prüfen. List.Count vs Array.Length
+   Fix: Bounds-Check vor Zugriff
+
+10. InvalidOperationException: Collection was modified
+    → foreach durch for-Schleife ersetzen beim Modifizieren
+    Fix: ToList() vor Iteration oder for-Schleife
+
+11. CS0103: The name 'X' does not exist in the current context
+    → Variable nicht deklariert oder Scope-Problem
+    Fix: Variable deklarieren oder Sichtbarkeit prüfen
+
+12. Warning: "The variable 'X' is assigned but its value is never used"
+    → Ungenutzte Variable
+    Fix: Variable entfernen oder nutzen
+
+13. CS0120: An object reference is required for non-static member
+    → Zugriff auf Instance-Member aus static Kontext
+    Fix: Instance-Referenz nutzen oder Member static machen
+
+14. Multiple Objects with DontDestroyOnLoad
+    → Singleton nicht korrekt implementiert
+    Fix: Singleton-Pattern mit Destroy-Check (siehe csharp-patterns.txt)
+
+15. Script Execution Order Problems
+    → Awake/Start Reihenfolge nicht garantiert
+    Fix: Script Execution Order in Project Settings oder [DefaultExecutionOrder]

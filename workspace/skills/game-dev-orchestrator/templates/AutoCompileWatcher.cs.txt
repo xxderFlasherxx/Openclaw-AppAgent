@@ -1,0 +1,122 @@
+using UnityEngine;
+using UnityEditor;
+using UnityEditor.Compilation;
+using System.IO;
+using System.Text;
+
+/// <summary>
+/// Unity Editor-Script das die Kompilierung überwacht und den Status
+/// in .plan/unity-status.json schreibt, damit Hans (OpenClaw) den
+/// Kompilierungsstatus auslesen kann.
+/// </summary>
+[InitializeOnLoad]
+public class AutoCompileWatcher
+{
+    static string statusFile;
+    static string errorLogFile;
+
+    static AutoCompileWatcher()
+    {
+        string planDir = Path.Combine(Application.dataPath, "..", ".plan");
+        if (!Directory.Exists(planDir))
+        {
+            Directory.CreateDirectory(planDir);
+        }
+
+        statusFile = Path.Combine(planDir, "unity-status.json");
+        errorLogFile = Path.Combine(planDir, "error-log.json");
+
+        CompilationPipeline.compilationFinished += OnCompilationFinished;
+        CompilationPipeline.compilationStarted += OnCompilationStarted;
+        Application.logMessageReceived += OnLogMessage;
+
+        WriteStatus("idle", "Unity Editor bereit.");
+    }
+
+    static void OnCompilationStarted(object context)
+    {
+        WriteStatus("compiling", "Kompilierung gestartet...");
+    }
+
+    static void OnCompilationFinished(object context)
+    {
+        var messages = CompilationPipeline.GetCompilationMessages();
+        var errors = new StringBuilder();
+        int errorCount = 0;
+
+        if (messages != null)
+        {
+            foreach (var msg in messages)
+            {
+                if (msg.type == CompilationMessageType.Error)
+                {
+                    errorCount++;
+                    errors.AppendLine(msg.message);
+                }
+            }
+        }
+
+        if (errorCount == 0)
+        {
+            WriteStatus("success", "Kompilierung erfolgreich. Keine Fehler.");
+        }
+        else
+        {
+            WriteStatus("error", $"{errorCount} Fehler: {errors.ToString().TrimEnd()}");
+        }
+    }
+
+    static void OnLogMessage(string condition, string stackTrace, LogType type)
+    {
+        if (type == LogType.Error || type == LogType.Exception)
+        {
+            string errorJson = JsonUtility.ToJson(new ErrorEntry
+            {
+                timestamp = System.DateTime.Now.ToString("o"),
+                message = condition,
+                stackTrace = stackTrace,
+                type = type.ToString()
+            });
+
+            File.AppendAllText(errorLogFile, errorJson + "\n");
+            WriteStatus("runtime-error", condition);
+        }
+    }
+
+    static void WriteStatus(string status, string message)
+    {
+        string json = "{"
+            + "\"status\":\"" + status + "\","
+            + "\"message\":\"" + EscapeJson(message) + "\","
+            + "\"timestamp\":\"" + System.DateTime.Now.ToString("o") + "\""
+            + "}";
+
+        try
+        {
+            File.WriteAllText(statusFile, json);
+        }
+        catch (System.Exception e)
+        {
+            Debug.LogWarning($"[AutoCompileWatcher] Konnte Status nicht schreiben: {e.Message}");
+        }
+    }
+
+    static string EscapeJson(string s)
+    {
+        if (string.IsNullOrEmpty(s)) return "";
+        return s.Replace("\\", "\\\\")
+                .Replace("\"", "\\\"")
+                .Replace("\n", "\\n")
+                .Replace("\r", "\\r")
+                .Replace("\t", "\\t");
+    }
+
+    [System.Serializable]
+    class ErrorEntry
+    {
+        public string timestamp;
+        public string message;
+        public string stackTrace;
+        public string type;
+    }
+}

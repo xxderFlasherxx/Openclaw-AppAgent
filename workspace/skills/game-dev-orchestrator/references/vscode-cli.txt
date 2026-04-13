@@ -1,98 +1,37 @@
-VS CODE CLI REFERENZ (für Hans/OpenClaw auf Linux)
-===================================================
+VS CODE CLI REFERENZ
+====================
 
-GRUNDLEGENDE BEFEHLE:
+Grundlegende Befehle:
+- code [ordner]              → Ordner in VS Code öffnen
+- code [datei]               → Datei in VS Code öffnen
+- code --goto [datei:zeile]  → Datei an bestimmter Zeile öffnen
+- code --diff [a] [b]        → Diff zwischen zwei Dateien
+- code --wait                → Wartet bis Fenster geschlossen wird
+- code --new-window          → Neues Fenster öffnen
+- code --reuse-window         → In bestehendem Fenster öffnen
 
-  # Ordner in VS Code öffnen
-  code /home/vboxuser/GameDev-Projekte/[GameName]
+Extension-Management:
+- code --install-extension [id]    → Extension installieren
+- code --uninstall-extension [id]  → Extension deinstallieren
+- code --list-extensions           → Installierte Extensions auflisten
 
-  # Bestimmte Datei öffnen
-  code /pfad/zur/datei.cs
+Wichtige Extensions für GameDev:
+- github.copilot              → GitHub Copilot
+- github.copilot-chat         → Copilot Chat
+- ms-dotnettools.csdevkit     → C# Dev Kit
+- visualstudiotoolsforunity.vstuc → Unity Tools (optional)
 
-  # Datei an bestimmter Zeile öffnen
-  code --goto /pfad/zur/datei.cs:42
+VS Code Tasks (tasks.json):
+- Können über Terminal getriggert werden
+- code --folder-uri [pfad] && tasks ausführen
+- Nützlich für Build-Automatisierung
 
-  # Diff zwischen zwei Dateien
-  code --diff datei1.cs datei2.cs
-
-  # Neue Datei erstellen und öffnen
-  code --new-window /pfad/zum/projekt
-
-  # VS Code im Hintergrund starten (kein Warten)
-  code --new-window /pfad &
-
-  # Extension installieren
-  code --install-extension [extension-id]
-
-  # Extension deinstallieren
-  code --uninstall-extension [extension-id]
-
-  # Installierte Extensions auflisten
-  code --list-extensions
-
-WICHTIGE EXTENSIONS FÜR GAME-DEV:
-
-  # GitHub Copilot (sollte bereits installiert sein)
-  code --install-extension GitHub.copilot
-  code --install-extension GitHub.copilot-chat
-
-  # C# / Unity
-  code --install-extension ms-dotnettools.csharp
-  code --install-extension ms-dotnettools.csdevkit
-
-  # Unity spezifisch
-  code --install-extension unity.unity-debug
-  code --install-extension visualstudiotoolsforunity.vstuc
-
-VS CODE SETTINGS FÜR PROJEKT:
-
-  Hans kann eine .vscode/settings.json im Projektordner erstellen:
-  {
-    "editor.formatOnSave": true,
-    "editor.defaultFormatter": "ms-dotnettools.csharp",
-    "files.exclude": {
-      "**/.git": true,
-      "**/Library": true,
-      "**/Temp": true,
-      "**/obj": true
-    },
-    "omnisharp.useModernNet": true,
-    "dotnet.defaultSolution": "*.sln"
-  }
-
-VS CODE TASKS:
-
-  Hans kann .vscode/tasks.json erstellen für Build-Automation:
-  {
-    "version": "2.0.0",
-    "tasks": [
-      {
-        "label": "Unity Build",
-        "type": "shell",
-        "command": "/opt/unity/Editor/Unity",
-        "args": [
-          "-batchmode",
-          "-nographics",
-          "-projectPath", "${workspaceFolder}",
-          "-buildLinux64Player", "${workspaceFolder}/Build/game",
-          "-quit",
-          "-logFile", "${workspaceFolder}/Build/build.log"
-        ],
-        "problemMatcher": []
-      }
-    ]
-  }
-
-COPILOT CHAT CLI:
-
-  GitHub CLI mit Copilot Extension:
-  # Installation
-  gh extension install github/gh-copilot
-
-  # Nutzung
-  gh copilot suggest "Create a Unity PlayerController with jump and sprint"
-  gh copilot explain "Was macht dieser Code: [code snippet]"
-
-  HINWEIS: gh copilot gibt Vorschläge auf der Kommandozeile aus,
-  schreibt aber NICHT direkt in Dateien. Hans müsste die Ausgabe
-  parsen und selbst in die Datei schreiben.
+VS Code Settings (für Copilot):
+{
+  "github.copilot.enable": {
+    "*": true,
+    "csharp": true
+  },
+  "github.copilot.advanced": {},
+  "editor.inlineSuggest.enabled": true
+}
