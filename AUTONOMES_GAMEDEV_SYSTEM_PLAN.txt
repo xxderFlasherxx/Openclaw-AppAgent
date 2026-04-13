@@ -10,19 +10,19 @@
 INHALTSVERZEICHNIS
 ================================================================================
 
-  TEIL A: PROJEKTÜBERSICHT UND ARCHITEKTUR
+  > TEIL A: PROJEKTÜBERSICHT UND ARCHITEKTUR
     - Gesamtkonzept
     - Rollenverteilung der drei Agenten
     - Datenfluss-Diagramm
     - Technologie-Stack
 
-  TEIL B: VORAUSSETZUNGEN UND INFRASTRUKTUR
+  > TEIL B: VORAUSSETZUNGEN UND INFRASTRUKTUR
     - Schritt 1: Systemvoraussetzungen prüfen und einrichten
     - Schritt 2: OpenClaw-Konfiguration für Game-Dev anpassen
     - Schritt 3: Ollama Cloud (Günther) als Vermittler konfigurieren
     - Schritt 4: VS Code Copilot Anbindung vorbereiten
 
-  TEIL C: SKILL-ENTWICKLUNG FÜR OPENCLAW
+  > TEIL C: SKILL-ENTWICKLUNG FÜR OPENCLAW
     - Schritt 5: Neuen Skill "game-dev-orchestrator" erstellen
     - Schritt 6: Sub-Skill "project-initializer" erstellen
     - Schritt 7: Sub-Skill "prompt-architect" erstellen
