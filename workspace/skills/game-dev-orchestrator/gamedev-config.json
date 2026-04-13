@@ -1,0 +1,43 @@
+{
+  "paths": {
+    "projectsRoot": "/home/vboxuser/GameDev-Projekte",
+    "openclawWorkspace": "/home/vboxuser/workspace",
+    "templatesDir": "/home/vboxuser/GameDev-Projekte/_templates",
+    "unityEditor": "",
+    "vscode": "code"
+  },
+  "unity": {
+    "version": "2022.3",
+    "renderPipeline": "URP",
+    "buildTarget": "StandaloneLinux64",
+    "batchModeFlags": "-batchmode -nographics -quit"
+  },
+  "models": {
+    "architect": "kimi-k2.5-ollama",
+    "coderDefault": "claude-sonnet-4.6",
+    "coderComplex": "claude-opus",
+    "coderQuick": "claude-haiku"
+  },
+  "ollamaCloud": {
+    "baseUrl": "https://ollama.com/v1",
+    "model": "kimi-k2.5",
+    "temperature": 0.3,
+    "maxTokens": 8192
+  },
+  "phases": {
+    "maxPhases": 10,
+    "maxRetriesPerPhase": 5,
+    "timeoutPerPhaseSeconds": 300,
+    "pollingIntervalSeconds": 3,
+    "copilotWaitSeconds": 60,
+    "compileWaitSeconds": 120
+  },
+  "automation": {
+    "method": "file-based",
+    "fallbackMethod": "xdotool",
+    "autoStart": false,
+    "notifyOnPhaseComplete": true,
+    "notifyOnError": true
+  },
+  "dryRun": false
+}

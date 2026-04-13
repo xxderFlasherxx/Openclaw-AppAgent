@@ -1,0 +1,37 @@
+GENRE-SPEZIFISCHER KONTEXT: Sandbox / Open World
+
+Typische Mechaniken:
+- First-Person oder Third-Person Controller
+- Prozedurale Welt-Generierung
+- Block/Voxel-basiertes oder freies Bausystem
+- Ressourcen-Sammlung
+- Crafting-System
+- Tag-Nacht-Zyklus
+- Überlebens-Mechaniken (Hunger, Durst)
+- Inventar-Management
+- Speicher-System
+
+Unity-Komponenten:
+- CharacterController / Rigidbody
+- Mesh-Generierung (prozedural)
+- Chunk-System (für große Welten)
+- ScriptableObjects (Rezepte, Items)
+- LOD Groups (Optimierung)
+- Occlusion Culling
+
+Referenz-Spiele:
+- Minecraft
+- Terraria
+- Raft
+
+Typischer 10-Phasen-Plan:
+Phase 1: Projektstruktur + Welt-Generierung Basis
+Phase 2: Spieler-Controller + Kamera
+Phase 3: Block/Bau-System
+Phase 4: Ressourcen + Inventar
+Phase 5: Crafting-System
+Phase 6: Überlebens-Mechaniken
+Phase 7: Welt-Features (Biome, Strukturen)
+Phase 8: UI + HUD
+Phase 9: Sound + Polish
+Phase 10: Build + Optimierung

@@ -1,0 +1,37 @@
+GENRE-SPEZIFISCHER KONTEXT: Platformer
+
+Typische Mechaniken:
+- Charakter-Controller (Laufen, Springen, Wandklettern)
+- 2D oder 2.5D Kamera
+- Level-Design mit Plattformen
+- Feinde mit KI-Patterns
+- Collectibles (Münzen, Power-Ups)
+- Checkpoint-System
+- Tod/Respawn
+- Score-System
+- Animationen (Idle, Run, Jump, Fall)
+
+Unity-Komponenten:
+- CharacterController oder Rigidbody2D
+- BoxCollider2D / CircleCollider2D
+- Tilemap (für Level-Design)
+- Animator Controller
+- Cinemachine 2D
+- TextMeshPro (Score)
+
+Referenz-Spiele:
+- Celeste
+- Hollow Knight
+- Super Meat Boy
+
+Typischer 10-Phasen-Plan:
+Phase 1: Projektstruktur + Grundlegende Szene
+Phase 2: Charakter-Controller + Physik
+Phase 3: Kamera-System
+Phase 4: Level-Bausteine (Plattformen, Hindernisse)
+Phase 5: Feinde + KI
+Phase 6: Collectibles + Score
+Phase 7: Checkpoint + Leben-System
+Phase 8: Animationen + Effekte
+Phase 9: Sound + Polish
+Phase 10: Build + Optimierung

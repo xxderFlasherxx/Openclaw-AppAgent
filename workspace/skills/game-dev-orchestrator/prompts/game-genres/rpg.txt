@@ -1,0 +1,38 @@
+GENRE-SPEZIFISCHER KONTEXT: RPG (Role Playing Game)
+
+Typische Mechaniken:
+- Third-Person oder Top-Down Controller
+- Dialog-System
+- Quest-System
+- Inventar + Items
+- Kampf-System (Echtzeit oder Rundenbasiert)
+- Charakter-Progression (Level, XP, Stats)
+- NPC-Interaktion
+- Speicher-System (Save/Load)
+- Welt-Exploration
+
+Unity-Komponenten:
+- NavMeshAgent (NPC-Navigation)
+- Rigidbody / CharacterController
+- ScriptableObjects (Items, Quests)
+- Canvas + UI Toolkit
+- Animator Controller
+- Cinemachine
+- Audio System
+
+Referenz-Spiele:
+- Stardew Valley
+- Pokémon
+- Zelda
+
+Typischer 10-Phasen-Plan:
+Phase 1: Projektstruktur + Grundlegende Szene
+Phase 2: Spieler-Controller + Kamera
+Phase 3: NPC-System + Dialoge
+Phase 4: Inventar + Items
+Phase 5: Kampf-System
+Phase 6: Quest-System
+Phase 7: Speicher-System
+Phase 8: Welt-Design + Exploration
+Phase 9: Sound + Polish
+Phase 10: Build + Optimierung

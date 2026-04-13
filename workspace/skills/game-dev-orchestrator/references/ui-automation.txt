@@ -1,0 +1,135 @@
+UI-AUTOMATION FÜR VS CODE (Linux / xdotool)
+=============================================
+
+HINWEIS: Dies ist der Fallback-Ansatz falls die datei-basierte
+Copilot-Steuerung nicht ausreicht. xdotool simuliert Tastatur/Maus.
+
+VORAUSSETZUNG:
+  sudo apt install xdotool wmctrl xdotool
+  # Display muss verfügbar sein (X11, nicht Wayland)
+  # In VirtualBox: "Grafikcontroller" auf VBoxSVGA stellen
+
+GRUNDLEGENDE BEFEHLE:
+
+  # Fenster finden und fokussieren
+  xdotool search --name "Visual Studio Code" windowactivate
+
+  # Tastenkombination senden
+  xdotool key ctrl+shift+i          # Copilot Chat öffnen
+  xdotool key ctrl+shift+p          # Command Palette
+  xdotool key ctrl+grave             # Terminal öffnen
+
+  # Text tippen (mit Verzögerung zwischen Zeichen)
+  xdotool type --delay 15 "Dein Text hier"
+
+  # Enter drücken
+  xdotool key Return
+
+  # Warten (in Millisekunden)
+  xdotool sleep 2
+
+  # Maus bewegen und klicken (Pixel-Koordinaten)
+  xdotool mousemove 500 300
+  xdotool click 1                    # Linksklick
+
+WORKFLOW: COPILOT CHAT PROMPT SENDEN
+
+  #!/bin/bash
+  # copilot-send-prompt.sh
+
+  PROMPT="$1"
+
+  # 1. VS Code Fenster aktivieren
+  WID=$(xdotool search --name "Visual Studio Code" | head -1)
+  if [ -z "$WID" ]; then
+    echo "FEHLER: VS Code Fenster nicht gefunden"
+    exit 1
+  fi
+  xdotool windowactivate "$WID"
+  sleep 1
+
+  # 2. Copilot Chat öffnen (Ctrl+Shift+I)
+  xdotool key ctrl+shift+i
+  sleep 2
+
+  # 3. Prompt eintippen
+  xdotool type --delay 10 "$PROMPT"
+  sleep 0.5
+
+  # 4. Enter zum Absenden
+  xdotool key Return
+
+  echo "Prompt gesendet. Warte auf Copilot-Antwort..."
+
+WORKFLOW: COMMAND PALETTE NUTZEN
+
+  #!/bin/bash
+  # vscode-command.sh
+
+  COMMAND="$1"
+
+  WID=$(xdotool search --name "Visual Studio Code" | head -1)
+  xdotool windowactivate "$WID"
+  sleep 0.5
+
+  # Command Palette öffnen
+  xdotool key ctrl+shift+p
+  sleep 1
+
+  # Befehl eintippen
+  xdotool type --delay 10 "$COMMAND"
+  sleep 0.5
+
+  # Ersten Treffer auswählen
+  xdotool key Return
+
+WORKFLOW: DATEI IN VS CODE ÖFFNEN UND BEARBEITEN
+
+  #!/bin/bash
+  # vscode-open-file.sh
+
+  FILE="$1"
+
+  # VS Code CLI nutzen (besser als xdotool für Dateioperationen)
+  code --goto "$FILE"
+  sleep 2
+
+  # Dann ggf. Copilot Inline-Suggestion auslösen
+  WID=$(xdotool search --name "Visual Studio Code" | head -1)
+  xdotool windowactivate "$WID"
+  sleep 0.5
+
+  # Ctrl+I für Inline-Chat
+  xdotool key ctrl+i
+
+ALTERNATIVE: wmctrl (Fensterverwaltung)
+
+  # Fenster auflisten
+  wmctrl -l
+
+  # Fenster aktivieren per Titel
+  wmctrl -a "Visual Studio Code"
+
+  # Fenster maximieren
+  wmctrl -r "Visual Studio Code" -b add,maximized_vert,maximized_horz
+
+FEHLERBEHEBUNG:
+
+  Problem: "X Error" oder "Cannot open display"
+  Lösung: export DISPLAY=:0
+
+  Problem: xdotool findet kein Fenster
+  Lösung: Prüfe mit "wmctrl -l" ob VS Code läuft
+
+  Problem: Wayland statt X11
+  Lösung: In VirtualBox Session als X11 starten, nicht Wayland
+           Oder: GDK_BACKEND=x11 code .
+
+  Problem: Tastatureingaben kommen nicht an
+  Lösung: Längere Delays verwenden (--delay 30 statt 10)
+
+SICHERHEITSHINWEISE:
+  - xdotool sendet Eingaben an das AKTIVE Fenster
+  - Immer zuerst prüfen ob das richtige Fenster aktiv ist
+  - Niemals Passwörter per xdotool senden
+  - Timeouts einbauen falls VS Code nicht reagiert

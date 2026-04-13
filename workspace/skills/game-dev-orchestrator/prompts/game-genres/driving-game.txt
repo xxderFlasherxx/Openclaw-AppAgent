@@ -1,0 +1,38 @@
+GENRE-SPEZIFISCHER KONTEXT: Fahrspiel / Driving Game
+
+Typische Mechaniken:
+- Fahrzeug-Physik (Rigidbody, WheelCollider)
+- Kamera-Nachführung (Smooth Follow)
+- Terrain/Straßen-Generierung
+- Treibstoff-System
+- Geschwindigkeitsanzeige / HUD
+- Tag-Nacht-Zyklus
+- Wetter-Effekte
+- Fahrzeug-Schaden
+- Inventar (Ersatzteile, Kanister)
+
+Unity-Komponenten die typischerweise gebraucht werden:
+- WheelCollider
+- Rigidbody
+- Terrain
+- Cinemachine (Kamera)
+- TextMeshPro (HUD)
+- Post Processing (Grafik-Effekte)
+- Audio System
+
+Referenz-Spiele:
+- The Long Drive
+- My Summer Car
+- Jalopy
+
+Typischer 10-Phasen-Plan:
+Phase 1: Projektstruktur + Grundlegende Szene
+Phase 2: Fahrzeug-Controller + Physik
+Phase 3: Kamera-System
+Phase 4: Terrain-Generierung (prozedural oder manuell)
+Phase 5: HUD + UI
+Phase 6: Treibstoff + Inventar-System
+Phase 7: Umwelt (Wetter, Tag/Nacht)
+Phase 8: Sound-Design + Effekte
+Phase 9: Polish + Bug-Fixing
+Phase 10: Build + Optimierung
