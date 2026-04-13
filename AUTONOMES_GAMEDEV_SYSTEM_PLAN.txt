@@ -1,0 +1,3190 @@
+================================================================================
+   AUTONOMES SPIELPROGRAMMIERUNGSSYSTEM MIT KI
+   Detaillierter Implementierungsplan
+   
+   Projekt: OpenClaw (Hans) x Ollama Cloud (Günther) x VS Code Copilot
+   Erstellt: 10. April 2026
+   Ziel: Vollautonome Game-Entwicklung über ein 3-Agenten-System
+================================================================================
+
+INHALTSVERZEICHNIS
+================================================================================
+
+  TEIL A: PROJEKTÜBERSICHT UND ARCHITEKTUR
+    - Gesamtkonzept
+    - Rollenverteilung der drei Agenten
+    - Datenfluss-Diagramm
+    - Technologie-Stack
+
+  TEIL B: VORAUSSETZUNGEN UND INFRASTRUKTUR
+    - Schritt 1: Systemvoraussetzungen prüfen und einrichten
+    - Schritt 2: OpenClaw-Konfiguration für Game-Dev anpassen
+    - Schritt 3: Ollama Cloud (Günther) als Vermittler konfigurieren
+    - Schritt 4: VS Code Copilot Anbindung vorbereiten
+
+  TEIL C: SKILL-ENTWICKLUNG FÜR OPENCLAW
+    - Schritt 5: Neuen Skill "game-dev-orchestrator" erstellen
+    - Schritt 6: Sub-Skill "project-initializer" erstellen
+    - Schritt 7: Sub-Skill "prompt-architect" erstellen
+    - Schritt 8: Sub-Skill "vscode-bridge" erstellen
+    - Schritt 9: Sub-Skill "unity-watcher" erstellen
+    - Schritt 10: Sub-Skill "error-handler" erstellen
+    - Schritt 11: Sub-Skill "phase-manager" erstellen
+
+  TEIL D: DIE AUTONOME PIPELINE
+    - Schritt 12: Den Master-Orchestrator bauen
+    - Schritt 13: Die Planungsphase implementieren
+    - Schritt 14: Die Ausführungsschleife implementieren
+    - Schritt 15: Das Fehler-Korrektur-System bauen
+    - Schritt 16: Das Kontext-Management implementieren
+
+  TEIL E: UNITY-INTEGRATION
+    - Schritt 17: Unity-Projekt-Templates vorbereiten
+    - Schritt 18: Unity Editor-Skripte für Automation
+    - Schritt 19: Unity Build-Pipeline automatisieren
+
+  TEIL F: QUALITÄTSSICHERUNG UND TESTS
+    - Schritt 20: Testframework für den Orchestrator
+    - Schritt 21: End-to-End Testlauf mit Beispiel-Game
+
+  TEIL G: ERWEITERUNGEN UND OPTIMIERUNGEN
+    - Schritt 22: Modell-Routing (Haiku vs Sonnet vs Opus)
+    - Schritt 23: Mehrstufiges Memory-System
+    - Schritt 24: User-Feedback-Integration
+
+================================================================================
+
+TEIL A: PROJEKTÜBERSICHT UND ARCHITEKTUR
+
+================================================================================
+
+GESAMTKONZEPT
+--------------------------------------------------------------------------------
+
+Das System besteht aus drei KI-Agenten, die zusammenarbeiten:
+
+1. HANS (OpenClaw AI / Gizmo)
+   - Rolle: Orchestrator / Bauleiter / Projektmanager
+   - Funktion: Steuert den gesamten Ablauf, bedient das Dateisystem,
+     führt Terminal-Befehle aus, kommuniziert mit dem User über Telegram,
+     koordiniert die anderen beiden Agenten.
+   - Technologie: OpenClaw AI (Node.js-basiert), läuft als Daemon
+   - Bereits vorhanden: Ja, bereits konfiguriert mit Telegram, Skills, etc.
+   - Modell: kimi-k2.5-ollama (Cloud)
+
+2. GÜNTHER (Ollama Cloud / Kimi K2.5)
+   - Rolle: Architekt / Vermittler / Prompt-Formulierer
+   - Funktion: Erstellt den 10-Phasen-Plan für das Spiel, formuliert
+     perfekte Prompts für den VS Code Copilot, analysiert Fehler und
+     erstellt Korrektur-Prompts. Er ist das strategische Gehirn.
+   - Technologie: Ollama Cloud API (OpenAI-kompatibel)
+   - Bereits vorhanden: Ja, konfiguriert unter ollama_cloud Provider
+   - Modell: kimi-k2.5
+
+3. DER COPILOT (VS Code Copilot / Claude Sonnet 4.6)
+   - Rolle: Meister-Programmierer / Code-Generator
+   - Funktion: Schreibt den eigentlichen C#-Code für Unity, erstellt
+     Shader, konfiguriert Szenen, implementiert Game-Mechaniken.
+   - Technologie: VS Code mit GitHub Copilot Extension
+   - Modelle: Claude Sonnet 4.6 (Standard), Opus (für komplexe Logik),
+     Haiku (für schnelle kleine Aufgaben)
+   - Interaktion: Über VS Code CLI oder UI-Automation
+
+
+ROLLENVERTEILUNG IM DETAIL
+--------------------------------------------------------------------------------
+
+User (Elias)
+  │
+  │  "Bau mir ein Game wie The Long Drive mit Katzen"
+  │
+  ▼
+HANS (OpenClaw)
+  │
+  │  1. Erkennt Intent: "Spielentwicklung"
+  │  2. Aktiviert Skill: "game-dev-orchestrator"
+  │  3. Sendet Spielidee an Günther
+  │
+  ▼
+GÜNTHER (Ollama Cloud)
+  │
+  │  1. Erstellt 10-Phasen-Raster
+  │  2. Formuliert Phase-1-Prompt für Copilot
+  │  3. Gibt alles zurück an Hans
+  │
+  ▼
+HANS (OpenClaw)
+  │
+  │  1. Erstellt Unity-Projektordner
+  │  2. Legt Dateien an
+  │  3. Öffnet VS Code
+  │  4. Injiziert Prompt in Copilot
+  │
+  ▼
+COPILOT (Claude Sonnet 4.6)
+  │
+  │  1. Generiert C#-Code
+  │  2. Schreibt in Dateien
+  │  3. Code wird gespeichert
+  │
+  ▼
+HANS (OpenClaw)
+  │
+  │  1. Prüft Unity-Kompilierung
+  │  2. Bei Fehler → zurück zu Günther → neuer Prompt → Copilot
+  │  3. Bei Erfolg → nächste Phase
+  │  4. Bei Phase 10 fertig → User benachrichtigen
+  │
+  ▼
+User (Elias)
+     "Dein Spiel ist fertig! Teste es in Unity."
+
+
+TECHNOLOGIE-STACK
+--------------------------------------------------------------------------------
+
+Backend/Orchestrierung:
+  - OpenClaw AI (v2026.3.x) mit Node.js Runtime
+  - Skill-System: SKILL.md-basierte Markdown-Skills
+  - Tools: exec, read, write, edit, apply_patch, web_fetch, message
+  - Kommunikation: Telegram Bot API
+
+KI-Modelle:
+  - Günther: Kimi K2.5 via Ollama Cloud (https://ollama.com/v1)
+  - Copilot: Claude Sonnet 4.6 / Opus / Haiku via VS Code
+  - Hans selbst: Kimi K2.5 (als OpenClaw Primary Model)
+
+Game Engine:
+  - Unity 2022.3 LTS oder Unity 6 (2025.x)
+  - Sprache: C# (.NET)
+  - Render Pipeline: URP (Universal Render Pipeline)
+  - Build Targets: Windows Standalone, ggf. WebGL
+
+Entwicklungsumgebung:
+  - VS Code mit Extensions:
+    - GitHub Copilot
+    - C# Dev Kit
+    - Unity Extension
+  - Terminal: zsh (macOS)
+
+Dateisystem-Struktur (Ziel):
+  ~/Documents/Programmieren/GameDev-Projekte/
+    ├── [game-name]/
+    │   ├── Assets/
+    │   │   ├── Scripts/
+    │   │   ├── Prefabs/
+    │   │   ├── Materials/
+    │   │   ├── Scenes/
+    │   │   └── Editor/
+    │   ├── ProjectSettings/
+    │   ├── Packages/
+    │   ├── .plan/
+    │   │   ├── master-plan.json
+    │   │   ├── current-phase.json
+    │   │   ├── phase-history.json
+    │   │   └── error-log.json
+    │   └── Builds/
+    └── _templates/
+        └── unity-base/
+
+
+================================================================================
+
+TEIL B: VORAUSSETZUNGEN UND INFRASTRUKTUR
+
+================================================================================
+
+
+--------------------------------------------------------------------------------
+SCHRITT 1: Systemvoraussetzungen prüfen und einrichten
+--------------------------------------------------------------------------------
+
+BESCHREIBUNG:
+  Bevor irgendetwas gebaut wird, muss sichergestellt sein, dass alle
+  notwendigen Programme und Tools installiert und korrekt konfiguriert sind.
+  Dieser Schritt ist die Grundlage für alles Weitere.
+
+WAS SONNET MACHEN SOLL:
+
+  1.1 Erstelle ein Shell-Skript "check-prerequisites.sh" das folgendes prüft:
+
+      #!/bin/bash
+      # Prüfe ob Unity Hub installiert ist
+      # Prüfe ob Unity Editor installiert ist (welche Version)
+      # Prüfe ob VS Code installiert ist
+      # Prüfe ob GitHub Copilot Extension installiert ist
+      # Prüfe ob Node.js >= 22.16 installiert ist
+      # Prüfe ob OpenClaw läuft (openclaw status)
+      # Prüfe ob Ollama Cloud erreichbar ist (curl test)
+      # Prüfe ob der Workspace-Ordner existiert
+      # Gib eine Zusammenfassung aus: Was fehlt, was ist OK
+
+  1.2 Erstelle ein Setup-Skript "setup-gamedev-environment.sh":
+
+      - Erstellt den Ordner ~/Documents/Programmieren/GameDev-Projekte/
+      - Erstellt den Unterordner _templates/
+      - Installiert benötigte VS Code Extensions via CLI:
+        code --install-extension ms-dotnettools.csdevkit
+        code --install-extension visualstudiotoolsforunity.vstuc
+        code --install-extension github.copilot
+        code --install-extension github.copilot-chat
+      - Erstellt eine .editorconfig für einheitliche Code-Formatierung
+      - Erstellt eine globale .gitignore für Unity-Projekte
+
+  1.3 Erstelle eine Konfigurationsdatei "gamedev-config.json":
+
+      {
+        "paths": {
+          "projectsRoot": "~/Documents/Programmieren/GameDev-Projekte",
+          "unityEditor": "/Applications/Unity/Hub/Editor/2022.3.x/Unity.app",
+          "vscode": "/Applications/Visual Studio Code.app",
+          "openclawWorkspace": "~/Documents/Programmieren/Openclaw-AppAgent/workspace"
+        },
+        "unity": {
+          "version": "2022.3",
+          "renderPipeline": "URP",
+          "buildTarget": "StandaloneWindows64"
+        },
+        "models": {
+          "architect": "kimi-k2.5-ollama",
+          "coder": "claude-sonnet-4.6",
+          "quickFix": "claude-haiku",
+          "complexLogic": "claude-opus"
+        },
+        "phases": {
+          "maxPhases": 10,
+          "maxRetries": 5,
+          "timeoutPerPhase": 300
+        }
+      }
+
+  1.4 Dokumentiere alle Pfade und Versionen in einer Datei
+      "environment-info.txt" damit Hans (OpenClaw) diese Infos
+      jederzeit nachschlagen kann.
+
+
+--------------------------------------------------------------------------------
+SCHRITT 2: OpenClaw-Konfiguration für Game-Dev anpassen
+--------------------------------------------------------------------------------
+
+BESCHREIBUNG:
+  OpenClaw (Hans/Gizmo) muss wissen, dass er jetzt ein Game-Dev-System
+  steuern soll. Dafür passen wir die bestehende Konfiguration an und
+  erweitern die Tool-Berechtigungen.
+
+WAS SONNET MACHEN SOLL:
+
+  2.1 Erweitere die openclaw.json um Game-Dev-spezifische Einstellungen:
+
+      - Im "agents.list[0].tools.alsoAllow" Array sicherstellen dass
+        folgende Tools vorhanden sind (die meisten sind es schon):
+        "exec"          → für Unity CLI-Befehle
+        "read"          → für Dateien lesen
+        "write"         → für Dateien schreiben
+        "edit"          → für Dateien bearbeiten
+        "apply_patch"   → für Code-Patches
+        "process"       → für Prozess-Management
+        "web_fetch"     → für API-Aufrufe an Ollama Cloud
+        "web_search"    → für Recherche zu Unity-APIs
+        "message"       → für Status-Updates an User
+        "cron"          → für zeitgesteuerte Aufgaben
+
+  2.2 Erstelle/Aktualisiere die TOOLS.md im Workspace:
+
+      Füge einen neuen Abschnitt hinzu:
+
+      ### Game Development
+      - Unity Editor Pfad: [aus gamedev-config.json]
+      - Projekte-Ordner: ~/Documents/Programmieren/GameDev-Projekte/
+      - Bevorzugte Engine: Unity mit URP
+      - Copilot-Modell für Code: Claude Sonnet 4.6
+      - Copilot-Modell für komplexe Logik: Claude Opus
+      - Copilot-Modell für Quick-Fixes: Claude Haiku
+
+  2.3 Aktualisiere die USER.md im Workspace:
+
+      Füge hinzu:
+      - Interessiert sich für autonome Game-Entwicklung
+      - Bevorzugt Unity als Engine
+      - Möchte so wenig wie möglich selbst coden
+      - Spiele-Qualität: Mittel bis Gut (nicht Ultra-HD, aber solide)
+
+  2.4 Erstelle eine neue Datei "workspace/memory/gamedev-state.json":
+
+      {
+        "initialized": false,
+        "currentProject": null,
+        "projectHistory": [],
+        "totalGamesCreated": 0,
+        "lastActivity": null
+      }
+
+
+--------------------------------------------------------------------------------
+SCHRITT 3: Ollama Cloud (Günther) als Vermittler konfigurieren
+--------------------------------------------------------------------------------
+
+BESCHREIBUNG:
+  Günther (das Kimi K2.5 Modell auf Ollama Cloud) ist der Architekt.
+  Er plant die Spielentwicklung und formuliert Prompts für den Copilot.
+  Hans muss wissen, wie er Günther am besten ansprechen kann.
+
+WAS SONNET MACHEN SOLL:
+
+  3.1 Erstelle eine System-Prompt-Vorlage für Günther:
+      Datei: workspace/skills/game-dev-orchestrator/prompts/architect-system.txt
+
+      Inhalt:
+      """
+      Du bist ein erfahrener Game Development Architekt und Technical Lead.
+      Deine Aufgabe ist es, Spielideen in strukturierte 10-Phasen-Pläne
+      umzuwandeln und für jede Phase einen präzisen Prompt zu formulieren,
+      der an einen Code-Generator (VS Code Copilot mit Claude Sonnet 4.6)
+      weitergegeben wird.
+
+      WICHTIGE REGELN:
+      1. Antworte IMMER in validem JSON
+      2. Jede Phase muss einen klaren, technischen Prompt enthalten
+      3. Prompts müssen so formuliert sein, dass ein LLM-Coder sie
+         ohne Rückfragen umsetzen kann
+      4. Berücksichtige Unity 2022.3 LTS mit URP
+      5. Code muss in C# sein
+      6. Jede Phase baut auf der vorherigen auf
+      7. Phase 1 ist IMMER die Projektstruktur
+      8. Phase 10 ist IMMER der finale Build
+
+      ANTWORT-FORMAT:
+      {
+        "gameName": "string",
+        "gameDescription": "string",
+        "totalPhases": 10,
+        "phases": [
+          {
+            "id": 1,
+            "name": "string",
+            "description": "string",
+            "copilotPrompt": "string (der exakte Prompt für den Copilot)",
+            "expectedFiles": ["string (Dateipfade die erstellt werden)"],
+            "validationCriteria": ["string (woran man erkennt dass es klappt)"],
+            "dependencies": ["string (was vorher fertig sein muss)"]
+          }
+        ]
+      }
+      """
+
+  3.2 Erstelle eine Prompt-Vorlage für Fehler-Analyse:
+      Datei: workspace/skills/game-dev-orchestrator/prompts/error-analysis.txt
+
+      Inhalt:
+      """
+      Du bist ein Unity C# Debugging-Experte.
+      Dir wird ein Fehler aus Unity gemeldet zusammen mit dem Code,
+      der den Fehler verursacht hat.
+
+      Deine Aufgabe:
+      1. Analysiere den Fehler
+      2. Erkläre kurz was schief gelaufen ist
+      3. Formuliere einen präzisen Korrektur-Prompt für den Copilot
+
+      ANTWORT-FORMAT:
+      {
+        "errorType": "string",
+        "rootCause": "string",
+        "correctionPrompt": "string (Prompt für den Copilot)",
+        "affectedFile": "string",
+        "severity": "critical|major|minor"
+      }
+      """
+
+  3.3 Erstelle eine Prompt-Vorlage für Phase-Übergang:
+      Datei: workspace/skills/game-dev-orchestrator/prompts/phase-transition.txt
+
+      Inhalt:
+      """
+      Du bist der Architekt eines autonomen Game-Dev-Systems.
+      Phase [N] wurde abgeschlossen. Hier ist der aktuelle Projektstand:
+      - Erstellte Dateien: [Liste]
+      - Bekannte Probleme: [Liste oder "keine"]
+      - Aktueller Code-Umfang: [Zeilen]
+
+      Erstelle jetzt den detaillierten Prompt für Phase [N+1].
+      Berücksichtige den existierenden Code und baue darauf auf.
+
+      ANTWORT-FORMAT:
+      {
+        "phaseId": N+1,
+        "phaseName": "string",
+        "detailedPrompt": "string (ausführlicher Prompt für Copilot)",
+        "contextFiles": ["string (welche bestehenden Dateien der Copilot
+                          sehen muss)"],
+        "newFiles": ["string (welche neuen Dateien erstellt werden)"],
+        "modifiedFiles": ["string (welche bestehenden Dateien geändert werden)"]
+      }
+      """
+
+  3.4 Erstelle eine API-Helper-Funktion als Referenz:
+      Datei: workspace/skills/game-dev-orchestrator/references/ollama-api.txt
+
+      Inhalt:
+      """
+      OLLAMA CLOUD API REFERENZ (für Hans/OpenClaw)
+
+      Endpunkt: https://ollama.com/v1/chat/completions
+      Auth: Bearer 4c18dad... (aus openclaw.json)
+      Format: OpenAI-kompatibel
+
+      Beispiel-Aufruf (den Hans über web_fetch machen kann):
+
+      POST https://ollama.com/v1/chat/completions
+      Headers:
+        Authorization: Bearer [API_KEY]
+        Content-Type: application/json
+      Body:
+        {
+          "model": "kimi-k2.5",
+          "messages": [
+            {"role": "system", "content": "[System Prompt]"},
+            {"role": "user", "content": "[User Prompt]"}
+          ],
+          "temperature": 0.3,
+          "response_format": {"type": "json_object"}
+        }
+
+      WICHTIG: response_format: json_object erzwingt JSON-Ausgabe
+      WICHTIG: temperature 0.3 für konsistente, technische Antworten
+      """
+
+  3.5 Teste die Verbindung zu Günther:
+      Hans soll einen Test-Request machen:
+      "Antworte mit: {\"status\": \"ok\", \"message\": \"Günther bereit\"}"
+      Wenn die Antwort valides JSON ist → Verbindung steht.
+
+
+--------------------------------------------------------------------------------
+SCHRITT 4: VS Code Copilot Anbindung vorbereiten
+--------------------------------------------------------------------------------
+
+BESCHREIBUNG:
+  Der VS Code Copilot ist der eigentliche Code-Generator. Hans muss
+  lernen, wie er den Copilot steuern kann. Dafür gibt es mehrere
+  Ansätze, die wir hier vorbereiten.
+
+WAS SONNET MACHEN SOLL:
+
+  4.1 ANSATZ A: VS Code CLI Integration (BEVORZUGT)
+      Recherchiere und dokumentiere die VS Code CLI-Möglichkeiten:
+
+      Erstelle Datei: workspace/skills/game-dev-orchestrator/references/vscode-cli.txt
+
+      Inhalt soll dokumentieren:
+      - "code --goto [file:line]" → Datei öffnen
+      - "code --diff [file1] [file2]" → Diff anzeigen
+      - "code [folder]" → Ordner öffnen
+      - VS Code Extension API Möglichkeiten
+      - Copilot Chat CLI-Modus (falls verfügbar)
+
+  4.2 ANSATZ B: Direkter Datei-Ansatz (EINFACHSTER WEG)
+      Anstatt den Copilot per UI zu steuern, kann Hans auch:
+
+      a) Eine .copilot-prompt.md Datei im Projektordner erstellen
+      b) Diese enthält den Prompt von Günther
+      c) Hans öffnet VS Code mit: code [projektordner]
+      d) Hans erstellt die Ziel-Datei mit Kommentar-Hinweisen:
+
+         // COPILOT-AUFGABE: [Prompt von Günther]
+         // Erstelle hier den Code für [Phase X]
+         // Kontext: [relevante Infos]
+
+      e) Der Copilot liest den Kommentar und generiert
+
+      Problem: Dies erfordert immer noch manuelle Bestätigung.
+
+  4.3 ANSATZ C: GitHub Copilot CLI (copilot-cli)
+      Recherchiere ob "github copilot in the cli" nutzbar ist:
+      - gh copilot suggest "..."
+      - gh copilot explain "..."
+
+      Falls verfügbar, dokumentiere wie Hans das nutzen kann.
+
+  4.4 ANSATZ D: VS Code Tasks + Copilot Agent Mode
+      VS Code hat seit 2025 einen "Agent Mode" für Copilot.
+      Recherchiere und dokumentiere:
+
+      - Kann man VS Code Tasks so konfigurieren, dass der Copilot
+        automatisch bestimmte Aufgaben ausführt?
+      - Gibt es eine Möglichkeit, den Copilot per Kommandozeile
+        eine Aufgabe zu geben?
+
+      Erstelle: workspace/skills/game-dev-orchestrator/references/copilot-modes.txt
+
+  4.5 ANSATZ E: UI-Automation als Fallback (KOMPLEX)
+      Falls kein anderer Weg funktioniert:
+
+      Dokumentiere den Einsatz von:
+      - AppleScript (macOS) für UI-Automation
+      - osascript -e 'tell application "Visual Studio Code" to ...'
+      - cliclick (macOS CLI Tool für Maus/Tastatur)
+      - Oder: Node.js Library "robotjs" / "nut.js"
+
+      Erstelle: workspace/skills/game-dev-orchestrator/references/ui-automation.txt
+
+      Inhalt:
+      """
+      UI-AUTOMATION FÜR VS CODE (macOS)
+
+      Option 1: AppleScript
+      osascript -e '
+        tell application "Visual Studio Code"
+          activate
+        end tell
+        tell application "System Events"
+          keystroke "i" using {command down, shift down}
+          delay 1
+          keystroke "[PROMPT TEXT]"
+          keystroke return
+        end tell
+      '
+
+      Option 2: cliclick (brew install cliclick)
+      cliclick t:"[TEXT]"  → Text tippen
+      cliclick kp:return   → Enter drücken
+      cliclick w:1000      → 1 Sekunde warten
+
+      Option 3: robotjs (npm install robotjs)
+      const robot = require('robotjs');
+      robot.typeString('[PROMPT]');
+      robot.keyTap('enter');
+      """
+
+  4.6 ENTSCHEIDUNG:
+      Erstelle eine Entscheidungsmatrix:
+      Datei: workspace/skills/game-dev-orchestrator/references/approach-decision.txt
+
+      | Ansatz       | Komplexität | Zuverlässigkeit | Autonomie |
+      |-------------|-------------|-----------------|-----------|
+      | CLI          | Niedrig     | Hoch            | Mittel    |
+      | Datei-Ansatz | Niedrig     | Mittel          | Niedrig   |
+      | Copilot CLI  | Mittel      | Hoch            | Hoch      |
+      | Agent Mode   | Mittel      | Hoch            | Hoch      |
+      | UI-Auto      | Hoch        | Niedrig         | Hoch      |
+
+      EMPFEHLUNG: Starte mit Ansatz D (Agent Mode) oder C (Copilot CLI),
+      falle zurück auf E (UI-Automation) wenn nötig.
+
+
+================================================================================
+
+TEIL C: SKILL-ENTWICKLUNG FÜR OPENCLAW
+
+================================================================================
+
+
+--------------------------------------------------------------------------------
+SCHRITT 5: Neuen Skill "game-dev-orchestrator" erstellen
+--------------------------------------------------------------------------------
+
+BESCHREIBUNG:
+  Dies ist der Haupt-Skill, der Hans die Fähigkeit gibt, autonom
+  Spiele zu entwickeln. Er ist der "Master-Skill" der alle anderen
+  Sub-Skills koordiniert.
+
+WAS SONNET MACHEN SOLL:
+
+  5.1 Erstelle die Ordnerstruktur:
+
+      workspace/skills/game-dev-orchestrator/
+      ├── SKILL.md                          ← Haupt-Skill-Definition
+      ├── prompts/                          ← Prompt-Vorlagen (aus Schritt 3)
+      │   ├── architect-system.txt
+      │   ├── error-analysis.txt
+      │   ├── phase-transition.txt
+      │   ├── copilot-system-prompt.txt
+      │   └── game-genres/
+      │       ├── driving-game.txt
+      │       ├── platformer.txt
+      │       ├── rpg.txt
+      │       └── sandbox.txt
+      ├── references/                       ← Referenz-Dokumente (aus Schritt 4)
+      │   ├── ollama-api.txt
+      │   ├── vscode-cli.txt
+      │   ├── copilot-modes.txt
+      │   ├── ui-automation.txt
+      │   ├── approach-decision.txt
+      │   ├── unity-project-structure.txt
+      │   └── csharp-patterns.txt
+      └── templates/                        ← Code-Vorlagen
+          ├── unity-gitignore.txt
+          ├── unity-editorconfig.txt
+          ├── base-game-manager.cs.txt
+          └── base-player-controller.cs.txt
+
+  5.2 Erstelle die SKILL.md:
+
+      ---
+      name: game-dev-orchestrator
+      description: >
+        Autonomes Spielentwicklungssystem. Triggert wenn der User ein Spiel
+        entwickelt haben möchte. Koordiniert die Planung (via Ollama Cloud),
+        die Code-Generierung (via VS Code Copilot) und das Testing (via Unity).
+        Arbeitet in einem 10-Phasen-System vollständig autonom.
+      ---
+
+      # Game Development Orchestrator
+
+      Dieses Skill-System ermöglicht die vollautonome Entwicklung von Spielen
+      in Unity. Es nutzt ein 3-Agenten-System:
+
+      ## Architektur
+
+      1. **Hans (OpenClaw/Gizmo)**: Orchestrator
+         - Steuert den Gesamtablauf
+         - Erstellt/bearbeitet Dateien
+         - Führt Terminal-Befehle aus
+         - Kommuniziert mit User via Telegram
+
+      2. **Günther (Ollama Cloud / Kimi K2.5)**: Architekt
+         - Erstellt 10-Phasen-Pläne
+         - Formuliert Prompts für den Copilot
+         - Analysiert Fehler
+         - Entscheidet über Phase-Übergänge
+
+      3. **VS Code Copilot (Claude Sonnet 4.6)**: Programmierer
+         - Schreibt den eigentlichen C#-Code
+         - Erstellt Unity-Scripts
+         - Implementiert Game-Mechaniken
+
+      ## Aktivierung
+
+      Der Skill wird aktiviert wenn der User Nachrichten sendet wie:
+      - "Bau mir ein Spiel..."
+      - "Erstelle ein Game..."
+      - "Entwickle ein Spiel wie..."
+      - "Mach ein Game im Stil von..."
+      - "Neues Spielprojekt..."
+
+      ## Workflow
+
+      ### Phase 0: Initialisierung
+      1. User-Prompt empfangen und verstehen
+      2. Genre erkennen (Driving, Platformer, RPG, Sandbox, etc.)
+      3. Genre-spezifischen Kontext laden (aus prompts/game-genres/)
+      4. An Günther senden für Planungserstellung
+
+      ### Phase 1-9: Entwicklung
+      Für jede Phase:
+      1. Günther nach Phase-Prompt fragen
+      2. Unity-Projektordner vorbereiten
+      3. Prompt an VS Code Copilot injizieren
+      4. Auf Code-Generierung warten
+      5. Unity-Kompilierung prüfen
+      6. Bei Fehler: Fehler-Korrektur-Schleife
+      7. Bei Erfolg: Phase als abgeschlossen markieren
+      8. Weiter zur nächsten Phase
+
+      ### Phase 10: Finalisierung
+      1. Unity Build erstellen
+      2. Build testen (kompiliert er?)
+      3. Build-Ordner bereinigen
+      4. User benachrichtigen mit Ergebnis
+
+      ## Zustandsverwaltung
+
+      Alle Zustände werden in .plan/ Ordner im Projektverzeichnis gespeichert:
+      - master-plan.json      → Der 10-Phasen-Plan von Günther
+      - current-phase.json    → Aktuelle Phase + Status
+      - phase-history.json    → Alle bisherigen Phasen + Ergebnisse
+      - error-log.json        → Alle aufgetretenen Fehler + Lösungen
+      - copilot-prompts.json  → Alle an den Copilot gesendeten Prompts
+
+      ## Fehlerbehandlung
+
+      - Max 5 Korrektur-Versuche pro Phase
+      - Nach 5 Fehlschlägen: User benachrichtigen und um Input bitten
+      - Fehler werden in error-log.json protokolliert
+      - Günther analysiert Fehler und formuliert Korrektur-Prompts
+
+      ## Sicherheit
+
+      - Keine externen Aktionen ohne User-Bestätigung
+      - Nur im vorgesehenen Projektordner arbeiten
+      - Unity Build nur lokal, kein Upload
+      - Alle Aktionen werden geloggt
+
+
+  5.3 Erstelle Genre-spezifische Prompt-Vorlagen:
+
+      Datei: prompts/game-genres/driving-game.txt
+      """
+      GENRE-SPEZIFISCHER KONTEXT: Fahrspiel / Driving Game
+
+      Typische Mechaniken:
+      - Fahrzeug-Physik (Rigidbody, WheelCollider)
+      - Kamera-Nachführung (Smooth Follow)
+      - Terrain/Straßen-Generierung
+      - Treibstoff-System
+      - Geschwindigkeitsanzeige / HUD
+      - Tag-Nacht-Zyklus
+      - Wetter-Effekte
+      - Fahrzeug-Schaden
+      - Inventar (Ersatzteile, Kanister)
+
+      Unity-Komponenten die typischerweise gebraucht werden:
+      - WheelCollider
+      - Rigidbody
+      - Terrain
+      - Cinemachine (Kamera)
+      - TextMeshPro (HUD)
+      - Post Processing (Grafik-Effekte)
+      - Audio System
+
+      Referenz-Spiele:
+      - The Long Drive
+      - My Summer Car
+      - Jalopy
+
+      Typischer 10-Phasen-Plan:
+      Phase 1: Projektstruktur + Grundlegende Szene
+      Phase 2: Fahrzeug-Controller + Physik
+      Phase 3: Kamera-System
+      Phase 4: Terrain-Generierung (prozedural oder manuell)
+      Phase 5: HUD + UI
+      Phase 6: Treibstoff + Inventar-System
+      Phase 7: Umwelt (Wetter, Tag/Nacht)
+      Phase 8: Sound-Design + Effekte
+      Phase 9: Polish + Bug-Fixing
+      Phase 10: Build + Optimierung
+      """
+
+      Datei: prompts/game-genres/platformer.txt
+      """
+      GENRE-SPEZIFISCHER KONTEXT: Platformer
+
+      Typische Mechaniken:
+      - Charakter-Controller (Laufen, Springen, Wandklettern)
+      - 2D oder 2.5D Kamera
+      - Level-Design mit Plattformen
+      - Feinde mit KI-Patterns
+      - Collectibles (Münzen, Power-Ups)
+      - Checkpoint-System
+      - Tod/Respawn
+      - Score-System
+      - Animationen (Idle, Run, Jump, Fall)
+
+      Unity-Komponenten:
+      - CharacterController oder Rigidbody2D
+      - BoxCollider2D / CircleCollider2D
+      - Tilemap (für Level-Design)
+      - Animator Controller
+      - Cinemachine 2D
+      - TextMeshPro (Score)
+
+      Referenz-Spiele:
+      - Celeste
+      - Hollow Knight
+      - Super Meat Boy
+
+      Typischer 10-Phasen-Plan:
+      Phase 1: Projektstruktur + Grundlegende Szene
+      Phase 2: Charakter-Controller + Physik
+      Phase 3: Kamera-System
+      Phase 4: Level-Bausteine (Plattformen, Hindernisse)
+      Phase 5: Feinde + KI
+      Phase 6: Collectibles + Score
+      Phase 7: Checkpoint + Leben-System
+      Phase 8: Animationen + Effekte
+      Phase 9: Sound + Polish
+      Phase 10: Build + Optimierung
+      """
+
+      Datei: prompts/game-genres/rpg.txt
+      """
+      GENRE-SPEZIFISCHER KONTEXT: RPG (Role Playing Game)
+
+      Typische Mechaniken:
+      - Third-Person oder Top-Down Controller
+      - Dialog-System
+      - Quest-System
+      - Inventar + Items
+      - Kampf-System (Echtzeit oder Rundenbasiert)
+      - Charakter-Progression (Level, XP, Stats)
+      - NPC-Interaktion
+      - Speicher-System (Save/Load)
+      - Welt-Exploration
+
+      Unity-Komponenten:
+      - NavMeshAgent (NPC-Navigation)
+      - Rigidbody / CharacterController
+      - ScriptableObjects (Items, Quests)
+      - Canvas + UI Toolkit
+      - Animator Controller
+      - Cinemachine
+      - Audio System
+
+      Referenz-Spiele:
+      - Stardew Valley
+      - Pokémon
+      - Zelda
+
+      Typischer 10-Phasen-Plan:
+      Phase 1: Projektstruktur + Grundlegende Szene
+      Phase 2: Spieler-Controller + Kamera
+      Phase 3: NPC-System + Dialoge
+      Phase 4: Inventar + Items
+      Phase 5: Kampf-System
+      Phase 6: Quest-System
+      Phase 7: Speicher-System
+      Phase 8: Welt-Design + Exploration
+      Phase 9: Sound + Polish
+      Phase 10: Build + Optimierung
+      """
+
+      Datei: prompts/game-genres/sandbox.txt
+      """
+      GENRE-SPEZIFISCHER KONTEXT: Sandbox / Open World
+
+      Typische Mechaniken:
+      - First-Person oder Third-Person Controller
+      - Prozedurale Welt-Generierung
+      - Block/Voxel-basiertes oder freies Bausystem
+      - Ressourcen-Sammlung
+      - Crafting-System
+      - Tag-Nacht-Zyklus
+      - Überlebens-Mechaniken (Hunger, Durst)
+      - Inventar-Management
+      - Speicher-System
+
+      Unity-Komponenten:
+      - CharacterController / Rigidbody
+      - Mesh-Generierung (prozedural)
+      - Chunk-System (für große Welten)
+      - ScriptableObjects (Rezepte, Items)
+      - LOD Groups (Optimierung)
+      - Occlusion Culling
+
+      Referenz-Spiele:
+      - Minecraft
+      - Terraria
+      - Raft
+
+      Typischer 10-Phasen-Plan:
+      Phase 1: Projektstruktur + Welt-Generierung Basis
+      Phase 2: Spieler-Controller + Kamera
+      Phase 3: Block/Bau-System
+      Phase 4: Ressourcen + Inventar
+      Phase 5: Crafting-System
+      Phase 6: Überlebens-Mechaniken
+      Phase 7: Welt-Features (Biome, Strukturen)
+      Phase 8: UI + HUD
+      Phase 9: Sound + Polish
+      Phase 10: Build + Optimierung
+      """
+
+
+--------------------------------------------------------------------------------
+SCHRITT 6: Sub-Skill "project-initializer" erstellen
+--------------------------------------------------------------------------------
+
+BESCHREIBUNG:
+  Dieser Sub-Skill gibt Hans die Fähigkeit, ein neues Unity-Projekt
+  von Grund auf zu erstellen. Er nutzt die Unity CLI und erstellt
+  die komplette Ordnerstruktur.
+
+WAS SONNET MACHEN SOLL:
+
+  6.1 Erstelle die Referenz-Datei für Unity-Projektstruktur:
+      Datei: references/unity-project-structure.txt
+
+      """
+      UNITY PROJEKT-STRUKTUR (Standard)
+
+      [GameName]/
+      ├── Assets/
+      │   ├── Scripts/
+      │   │   ├── Core/
+      │   │   │   ├── GameManager.cs
+      │   │   │   ├── InputManager.cs
+      │   │   │   └── AudioManager.cs
+      │   │   ├── Player/
+      │   │   │   ├── PlayerController.cs
+      │   │   │   ├── PlayerStats.cs
+      │   │   │   └── PlayerInput.cs
+      │   │   ├── Camera/
+      │   │   │   └── CameraController.cs
+      │   │   ├── UI/
+      │   │   │   ├── UIManager.cs
+      │   │   │   ├── HUDController.cs
+      │   │   │   └── MenuController.cs
+      │   │   ├── Environment/
+      │   │   │   └── [Genre-spezifisch]
+      │   │   ├── AI/
+      │   │   │   └── [Genre-spezifisch]
+      │   │   └── Utilities/
+      │   │       ├── Singleton.cs
+      │   │       └── ObjectPool.cs
+      │   ├── Prefabs/
+      │   │   ├── Player/
+      │   │   ├── Enemies/
+      │   │   ├── Environment/
+      │   │   └── UI/
+      │   ├── Materials/
+      │   ├── Textures/
+      │   ├── Scenes/
+      │   │   ├── MainMenu.unity
+      │   │   ├── GameScene.unity
+      │   │   └── LoadingScene.unity
+      │   ├── Audio/
+      │   │   ├── Music/
+      │   │   └── SFX/
+      │   ├── Animations/
+      │   ├── Shaders/
+      │   ├── Editor/
+      │   │   └── AutoBuilder.cs
+      │   └── Resources/
+      ├── ProjectSettings/
+      ├── Packages/
+      │   └── manifest.json
+      ├── .plan/
+      │   ├── master-plan.json
+      │   ├── current-phase.json
+      │   ├── phase-history.json
+      │   └── error-log.json
+      ├── .gitignore
+      ├── .editorconfig
+      └── README.md
+      """
+
+  6.2 Erstelle die Template-Dateien:
+
+      Datei: templates/unity-gitignore.txt
+      """
+      # Unity generated
+      /[Ll]ibrary/
+      /[Tt]emp/
+      /[Oo]bj/
+      /[Bb]uild/
+      /[Bb]uilds/
+      /[Ll]ogs/
+      /[Uu]ser[Ss]ettings/
+
+      # IDE
+      .vs/
+      .vscode/
+      *.csproj
+      *.sln
+      *.suo
+      *.user
+      *.pidb
+      *.booproj
+
+      # OS
+      .DS_Store
+      Thumbs.db
+
+      # Plan files (internal)
+      # .plan/ wird NICHT ignoriert, damit Hans darauf zugreifen kann
+      """
+
+      Datei: templates/base-game-manager.cs.txt
+      """
+      using UnityEngine;
+
+      /// <summary>
+      /// Zentrale Spielsteuerung. Singleton-Pattern.
+      /// Verwaltet den globalen Spielzustand.
+      /// </summary>
+      public class GameManager : MonoBehaviour
+      {
+          public static GameManager Instance { get; private set; }
+
+          [Header("Game State")]
+          public bool isGameRunning = false;
+          public bool isPaused = false;
+
+          private void Awake()
+          {
+              if (Instance != null && Instance != this)
+              {
+                  Destroy(gameObject);
+                  return;
+              }
+              Instance = this;
+              DontDestroyOnLoad(gameObject);
+          }
+
+          private void Start()
+          {
+              InitializeGame();
+          }
+
+          private void InitializeGame()
+          {
+              isGameRunning = true;
+              Debug.Log("[GameManager] Game initialized.");
+          }
+
+          public void PauseGame()
+          {
+              isPaused = true;
+              Time.timeScale = 0f;
+          }
+
+          public void ResumeGame()
+          {
+              isPaused = false;
+              Time.timeScale = 1f;
+          }
+
+          public void QuitGame()
+          {
+              #if UNITY_EDITOR
+              UnityEditor.EditorApplication.isPlaying = false;
+              #else
+              Application.Quit();
+              #endif
+          }
+      }
+      """
+
+  6.3 Beschreibe den Initialisierungsprozess:
+
+      Wenn Hans ein neues Projekt starten soll:
+
+      a) Projektnamen generieren (oder vom User übernehmen)
+         Beispiel: "Cat Long Drive" → "CatLongDrive"
+
+      b) Verzeichnis erstellen:
+         mkdir -p ~/Documents/Programmieren/GameDev-Projekte/CatLongDrive
+
+      c) Unity-Projekt erstellen via CLI:
+         /Applications/Unity/Hub/Editor/[version]/Unity.app/Contents/MacOS/Unity \
+           -createProject ~/Documents/Programmieren/GameDev-Projekte/CatLongDrive \
+           -quit -batchmode
+
+      d) Ordnerstruktur erstellen:
+         mkdir -p Assets/Scripts/{Core,Player,Camera,UI,Environment,AI,Utilities}
+         mkdir -p Assets/{Prefabs,Materials,Textures,Scenes,Audio,Animations,Shaders,Editor}
+         mkdir -p Assets/Audio/{Music,SFX}
+         mkdir -p Assets/Prefabs/{Player,Enemies,Environment,UI}
+         mkdir -p .plan
+
+      e) Template-Dateien kopieren:
+         cp templates/unity-gitignore.txt .gitignore
+         cp templates/base-game-manager.cs.txt Assets/Scripts/Core/GameManager.cs
+
+      f) .plan/master-plan.json initialisieren:
+         {"status": "planning", "phases": [], "currentPhase": 0}
+
+      g) Git initialisieren:
+         git init && git add . && git commit -m "Initial project setup"
+
+      h) VS Code öffnen:
+         code ~/Documents/Programmieren/GameDev-Projekte/CatLongDrive
+
+
+--------------------------------------------------------------------------------
+SCHRITT 7: Sub-Skill "prompt-architect" erstellen
+--------------------------------------------------------------------------------
+
+BESCHREIBUNG:
+  Dieser Sub-Skill ist verantwortlich für die Kommunikation mit
+  Günther (Ollama Cloud). Er sendet Anfragen, empfängt Pläne und
+  formuliert Prompts.
+
+WAS SONNET MACHEN SOLL:
+
+  7.1 Definiere die Funktion "createMasterPlan":
+
+      INPUT:
+        - userPrompt: String (z.B. "Bau ein Spiel wie The Long Drive mit Katzen")
+        - genre: String (z.B. "driving-game")
+        - genreContext: String (Inhalt der Genre-Datei)
+
+      ABLAUF:
+        1. Lade den System-Prompt aus prompts/architect-system.txt
+        2. Lade den Genre-Kontext aus prompts/game-genres/[genre].txt
+        3. Baue die Nachricht zusammen:
+           System: [architect-system.txt Inhalt]
+           User: "Der User möchte folgendes Spiel:
+                  [userPrompt]
+
+                  Genre-Kontext:
+                  [genreContext]
+
+                  Erstelle den 10-Phasen-Plan."
+        4. Sende an Günther via web_fetch:
+           POST https://ollama.com/v1/chat/completions
+        5. Parse die JSON-Antwort
+        6. Validiere: Hat die Antwort 10 Phasen? Sind alle Felder da?
+        7. Speichere als .plan/master-plan.json
+
+      OUTPUT:
+        - master-plan.json mit 10 Phasen
+
+  7.2 Definiere die Funktion "createPhasePrompt":
+
+      INPUT:
+        - phaseId: Number (1-10)
+        - masterPlan: Object (der gespeicherte Plan)
+        - existingFiles: Array (Liste der bisherigen Dateien + Inhalt)
+        - previousErrors: Array (Fehler aus vorherigen Versuchen)
+
+      ABLAUF:
+        1. Lade den Phase-Transition-Prompt aus prompts/phase-transition.txt
+        2. Ersetze Platzhalter mit echten Werten
+        3. Füge den aktuellen Code-Stand hinzu (nur relevante Dateien!)
+        4. Sende an Günther
+        5. Parse die Antwort
+        6. Extrahiere den "detailedPrompt" für den Copilot
+
+      OUTPUT:
+        - Fertiger Prompt-String für den VS Code Copilot
+        - Liste der zu erstellenden/ändernden Dateien
+
+  7.3 Definiere die Funktion "analyzeError":
+
+      INPUT:
+        - errorMessage: String (Unity Fehler)
+        - sourceCode: String (der Code der den Fehler verursacht)
+        - fileName: String (welche Datei betroffen ist)
+        - phaseId: Number (aktuelle Phase)
+
+      ABLAUF:
+        1. Lade den Error-Analysis-Prompt aus prompts/error-analysis.txt
+        2. Baue die Nachricht:
+           "Fehler in Phase [phaseId], Datei [fileName]:
+            Fehlermeldung: [errorMessage]
+            Code: [sourceCode]
+            Erstelle einen Korrektur-Prompt."
+        3. Sende an Günther
+        4. Parse die Antwort
+
+      OUTPUT:
+        - correctionPrompt: String (neuer Prompt für den Copilot)
+        - severity: String (critical/major/minor)
+
+  7.4 Definiere die Funktion "selectModel":
+
+      Günther soll auch entscheiden welches Copilot-Modell am besten
+      geeignet ist:
+
+      INPUT:
+        - taskDescription: String
+        - complexity: String (low/medium/high)
+
+      LOGIK:
+        - Einfache Aufgaben (Datei erstellen, Kommentare):
+          → Claude Haiku (schnell, günstig)
+        - Standard-Code (Controller, UI, Systeme):
+          → Claude Sonnet 4.6 (bester Allrounder)
+        - Komplexe Logik (Physik, prozedurale Generierung, KI):
+          → Claude Opus (maximale Intelligenz)
+
+      OUTPUT:
+        - modelName: String
+        - reason: String
+
+
+--------------------------------------------------------------------------------
+SCHRITT 8: Sub-Skill "vscode-bridge" erstellen
+--------------------------------------------------------------------------------
+
+BESCHREIBUNG:
+  Dies ist die Brücke zwischen Hans und dem VS Code Copilot.
+  Der kritischste und komplexeste Teil des Systems.
+
+WAS SONNET MACHEN SOLL:
+
+  8.1 Implementiere Methode 1: "Datei-basierte Injection"
+
+      KONZEPT:
+      Anstatt den Copilot per UI zu steuern, nutzen wir einen cleveren
+      Trick: Hans erstellt Dateien mit speziellen Kommentaren, die der
+      Copilot automatisch vervollständigt.
+
+      ABLAUF:
+        a) Hans erstellt die Zieldatei (z.B. PlayerController.cs)
+        b) Hans schreibt einen ausführlichen Kommentar-Block an den Anfang:
+
+           /*
+           * AUFGABE FÜR DIESES SCRIPT:
+           * [Detaillierter Prompt von Günther]
+           *
+           * TECHNISCHE ANFORDERUNGEN:
+           * - Unity 2022.3 LTS
+           * - C# 9.0
+           * - URP kompatibel
+           *
+           * ABHÄNGIGKEITEN:
+           * - GameManager.cs (bereits vorhanden)
+           *
+           * ERWARTETER CODE:
+           * [Kurze Beschreibung der erwarteten Klassen/Methoden]
+           */
+
+           using UnityEngine;
+
+           // TODO: [Erste Aufgabe]
+
+        c) Hans öffnet die Datei in VS Code:
+           code --goto [datei]:1
+
+        d) OPTION A: Hans wartet darauf, dass der User den Copilot
+           manuell triggert (Cmd+I oder Tab)
+
+        e) OPTION B: Hans nutzt AppleScript für automatisches Triggern
+           (siehe 8.3)
+
+  8.2 Implementiere Methode 2: "Terminal-basierte Code-Generierung"
+
+      KONZEPT:
+      Hans nutzt die GitHub CLI mit Copilot-Integration, um Code
+      direkt im Terminal zu generieren.
+
+      ABLAUF:
+        a) Prüfe ob gh CLI installiert ist: which gh
+        b) Prüfe ob Copilot Extension installiert ist: gh extension list
+        c) Generiere Code:
+           gh copilot suggest -t code "[Prompt von Günther]"
+        d) Fange die Ausgabe ab und schreibe sie in die Datei
+
+      FALLBACK:
+      Falls gh copilot nicht verfügbar ist, nutze die OpenAI-kompatible
+      API direkt, um Code zu generieren. Hans kann das über web_fetch
+      machen, wenn er Zugang zu einer Claude-API hat.
+
+  8.3 Implementiere Methode 3: "AppleScript UI-Automation"
+
+      KONZEPT:
+      Hans simuliert Tastatureingaben in VS Code über AppleScript.
+      Das ist der "Brute Force"-Ansatz, aber funktioniert zuverlässig.
+
+      ABLAUF:
+        a) Hans öffnet VS Code mit dem Projektordner
+        b) Hans öffnet die Zieldatei
+        c) Hans führt AppleScript aus:
+
+           #!/usr/bin/osascript
+
+           -- VS Code aktivieren
+           tell application "Visual Studio Code" to activate
+           delay 1
+
+           -- Copilot Chat öffnen (Cmd+Shift+I für Inline Chat)
+           tell application "System Events"
+             keystroke "i" using {command down}
+             delay 0.5
+           end tell
+
+           -- Prompt eintippen
+           tell application "System Events"
+             -- Clipboard nutzen statt tippen (schneller, keine Encoding-Probleme)
+             set the clipboard to "[PROMPT VON GÜNTHER]"
+             keystroke "v" using {command down}
+             delay 0.5
+             keystroke return
+           end tell
+
+           -- Warten bis Copilot fertig ist
+           delay 30
+
+           -- Accept-Shortcut (Tab oder Enter, je nach Modus)
+           tell application "System Events"
+             keystroke return
+             delay 0.5
+           end tell
+
+           -- Datei speichern
+           tell application "System Events"
+             keystroke "s" using {command down}
+           end tell
+
+        d) Hans wartet X Sekunden (konfigurierbar)
+        e) Hans liest die geänderte Datei ein
+        f) Hans prüft ob sich der Inhalt geändert hat
+
+      WICHTIG:
+      - Accessibility-Zugriff muss in macOS erlaubt sein!
+        System Preferences → Privacy & Security → Accessibility
+        → Terminal (oder OpenClaw) muss aktiviert sein
+      - Timing ist kritisch: zu schnelles Tippen → Fehler
+      - Clipboard-Methode ist dem Tippen vorzuziehen
+
+  8.4 Implementiere die "Smart Wait" Funktion:
+
+      KONZEPT:
+      Statt blind X Sekunden zu warten, überwacht Hans die Datei:
+
+      ABLAUF:
+        a) Merke dir die Dateigröße/Timestamp vor dem Copilot-Prompt
+        b) Starte einen fs.watch() auf die Datei
+        c) Wenn sich die Datei ändert:
+           - Warte noch 3 Sekunden (Copilot könnte noch schreiben)
+           - Prüfe ob der Copilot-Indikator weg ist
+        d) Wenn sich nach 60 Sekunden nichts getan hat → Timeout
+        e) Bei Timeout → Neuer Versuch oder Fehler melden
+
+  8.5 Implementiere die "Code Extraction" Funktion:
+
+      KONZEPT:
+      Wenn der Copilot Code generiert hat, muss Hans sicherstellen
+      dass nur valider Code in der Datei steht.
+
+      ABLAUF:
+        a) Lese die Datei ein
+        b) Prüfe auf offensichtliche Probleme:
+           - Fehlende using-Statements
+           - Doppelte Klassen-Definitionen
+           - Syntax-Fehler (fehlende geschweifte Klammern)
+        c) Falls der Copilot Markdown-Codeblöcke eingefügt hat:
+           Extrahiere nur den Code zwischen ``` Blöcken
+        d) Speichere die bereinigte Version
+
+
+--------------------------------------------------------------------------------
+SCHRITT 9: Sub-Skill "unity-watcher" erstellen
+--------------------------------------------------------------------------------
+
+BESCHREIBUNG:
+  Dieser Sub-Skill überwacht Unity und meldet Kompilierungsfehler,
+  Runtime-Fehler und den allgemeinen Projektstatus an Hans.
+
+WAS SONNET MACHEN SOLL:
+
+  9.1 Erstelle das Unity Editor-Script "AutoCompileWatcher.cs":
+
+      Datei: templates/AutoCompileWatcher.cs.txt
+
+      """
+      using UnityEngine;
+      using UnityEditor;
+      using System.IO;
+      using System.Text;
+
+      [InitializeOnLoad]
+      public class AutoCompileWatcher
+      {
+          static string statusFile;
+
+          static AutoCompileWatcher()
+          {
+              statusFile = Path.Combine(
+                  Application.dataPath, "..", ".plan", "unity-status.json"
+              );
+
+              CompilationPipeline.compilationFinished += OnCompilationFinished;
+              CompilationPipeline.compilationStarted += OnCompilationStarted;
+              Application.logMessageReceived += OnLogMessage;
+
+              WriteStatus("idle", "Unity Editor bereit.");
+          }
+
+          static void OnCompilationStarted(object context)
+          {
+              WriteStatus("compiling", "Kompilierung gestartet...");
+          }
+
+          static void OnCompilationFinished(object context)
+          {
+              // Prüfe auf Fehler
+              var errors = new StringBuilder();
+              int errorCount = 0;
+
+              // Unity-interne Fehler-Abfrage
+              // CompilationPipeline stellt diese bereit
+
+              if (errorCount == 0)
+              {
+                  WriteStatus("success", "Kompilierung erfolgreich. Keine Fehler.");
+              }
+              else
+              {
+                  WriteStatus("error", errors.ToString());
+              }
+          }
+
+          static void OnLogMessage(string condition, string stackTrace,
+                                    LogType type)
+          {
+              if (type == LogType.Error || type == LogType.Exception)
+              {
+                  string errorJson = JsonUtility.ToJson(new ErrorEntry
+                  {
+                      timestamp = System.DateTime.Now.ToString("o"),
+                      message = condition,
+                      stackTrace = stackTrace,
+                      type = type.ToString()
+                  });
+
+                  string errorLog = Path.Combine(
+                      Application.dataPath, "..", ".plan", "error-log.json"
+                  );
+
+                  // Append to error log
+                  File.AppendAllText(errorLog, errorJson + "\n");
+
+                  WriteStatus("runtime-error", condition);
+              }
+          }
+
+          static void WriteStatus(string status, string message)
+          {
+              string json = "{"
+                  + "\"status\":\"" + status + "\","
+                  + "\"message\":\"" + EscapeJson(message) + "\","
+                  + "\"timestamp\":\"" + System.DateTime.Now.ToString("o") + "\""
+                  + "}";
+
+              File.WriteAllText(statusFile, json);
+          }
+
+          static string EscapeJson(string s)
+          {
+              return s.Replace("\\", "\\\\")
+                      .Replace("\"", "\\\"")
+                      .Replace("\n", "\\n")
+                      .Replace("\r", "\\r");
+          }
+
+          [System.Serializable]
+          class ErrorEntry
+          {
+              public string timestamp;
+              public string message;
+              public string stackTrace;
+              public string type;
+          }
+      }
+      """
+
+  9.2 Beschreibe den Watcher-Ablauf für Hans:
+
+      ABLAUF:
+        a) Nach jedem Copilot-Prompt wartet Hans 5 Sekunden
+        b) Hans liest die Datei .plan/unity-status.json
+        c) Interpretation:
+           - "idle"          → Unity hat noch nicht reagiert, warte weiter
+           - "compiling"     → Unity kompiliert, warte weiter
+           - "success"       → Alles OK, weiter zur nächsten Phase
+           - "error"         → Kompilierungsfehler, starte Fehlerkorrektur
+           - "runtime-error" → Laufzeitfehler, starte Fehlerkorrektur
+        d) Hans pollt alle 3 Sekunden bis ein finaler Status erreicht ist
+        e) Timeout nach 120 Sekunden → User benachrichtigen
+
+  9.3 Beschreibe den Unity-Log-Reader:
+
+      Falls der Unity Editor nicht läuft oder das Watcher-Script
+      nicht installiert ist, kann Hans auch die Unity Log-Dateien
+      direkt auslesen:
+
+      macOS Log-Pfad:
+      ~/Library/Logs/Unity/Editor.log
+
+      Hans kann diese Datei mit dem "read"-Tool auslesen und nach
+      Zeilen suchen die mit "Error" oder "Exception" beginnen.
+
+  9.4 Erstelle eine Referenz für häufige Unity-Fehler:
+
+      Datei: references/common-unity-errors.txt
+
+      """
+      HÄUFIGE UNITY C# FEHLER UND LÖSUNGEN
+
+      1. CS0246: The type or namespace name 'X' could not be found
+         → using-Statement fehlt oder Package nicht installiert
+
+      2. CS1061: 'Type' does not contain a definition for 'Member'
+         → Tippfehler im Methodennamen oder falsche API-Version
+
+      3. NullReferenceException
+         → Objekt nicht zugewiesen. GetComponent<>() oder Find() fehlgeschlagen
+
+      4. CS0029: Cannot implicitly convert type 'X' to 'Y'
+         → Falscher Datentyp. Cast nötig oder Variable-Typ ändern
+
+      5. UnityException: [Object] can only be called from the main thread
+         → Async/Thread-Problem. Verwende UnityMainThreadDispatcher
+
+      6. MissingComponentException
+         → RequireComponent-Attribut fehlt oder Komponente nicht hinzugefügt
+
+      7. StackOverflowException
+         → Endlose Rekursion. Update() ruft sich möglicherweise selbst auf
+
+      8. SerializationException
+         → [Serializable]-Attribut fehlt oder nicht-serialisierbarer Typ
+
+      9. IndexOutOfRangeException
+         → Array-Index prüfen. List.Count vs Array.Length
+
+      10. InvalidOperationException: Collection was modified
+          → foreach durch for-Schleife ersetzen beim Modifizieren
+      """
+
+
+--------------------------------------------------------------------------------
+SCHRITT 10: Sub-Skill "error-handler" erstellen
+--------------------------------------------------------------------------------
+
+BESCHREIBUNG:
+  Der Error-Handler ist das "Self-Healing"-System. Er fängt Fehler ab,
+  klassifiziert sie, und steuert die Korrektur-Schleife.
+
+WAS SONNET MACHEN SOLL:
+
+  10.1 Definiere den Fehler-Korrektur-Ablauf:
+
+       ABLAUF (bei Kompilierungsfehler):
+
+       Fehler erkannt
+         │
+         ▼
+       Fehler klassifizieren
+         │
+         ├── CRITICAL (kompiliert nicht)
+         │     │
+         │     ▼
+         │   Günther um Fehleranalyse bitten
+         │     │
+         │     ▼
+         │   Korrektur-Prompt erstellen
+         │     │
+         │     ▼
+         │   An Copilot senden (gleiches Modell oder Upgrade zu Opus)
+         │     │
+         │     ▼
+         │   Unity-Status erneut prüfen
+         │     │
+         │     ├── Behoben → Weiter mit nächster Phase
+         │     └── Nicht behoben → Versuch N+1 (max 5)
+         │           │
+         │           └── Nach 5 Versuchen → User benachrichtigen
+         │
+         ├── MAJOR (kompiliert, aber Logik-Fehler)
+         │     │
+         │     ▼
+         │   Runtime-Error aus .plan/error-log.json lesen
+         │     │
+         │     ▼
+         │   Günther um Analyse + Korrektur-Prompt bitten
+         │     │
+         │     ▼
+         │   An Copilot senden
+         │
+         └── MINOR (Warning, nicht kritisch)
+               │
+               ▼
+             In error-log.json speichern, weitermachen
+
+  10.2 Definiere die "Retry-Strategie":
+
+       Versuch 1: Gleicher Prompt, gleiches Modell
+                   → Manchmal reicht ein zweiter Anlauf
+
+       Versuch 2: Geänderter Prompt (Fehler-Kontext hinzugefügt)
+                   → Günther erstellt verbesserten Prompt
+
+       Versuch 3: Modell-Upgrade (Sonnet → Opus)
+                   → Stärkeres Modell für schwierigere Probleme
+
+       Versuch 4: Vereinfachter Ansatz
+                   → Günther soll eine simplere Lösung vorschlagen
+
+       Versuch 5: Minimaler Code + User-Hilfe
+                   → Nur das absolute Minimum generieren
+                   → User um Input bitten: "Ich habe 5x versucht,
+                     [Fehler] zu beheben. Kannst du dir das mal anschauen?"
+
+  10.3 Definiere das Error-Log-Format:
+
+       .plan/error-log.json:
+       {
+         "errors": [
+           {
+             "id": "uuid",
+             "phaseId": 3,
+             "attempt": 1,
+             "timestamp": "2026-04-10T14:30:00Z",
+             "type": "compilation",
+             "severity": "critical",
+             "message": "CS0246: The type or namespace...",
+             "file": "Assets/Scripts/Player/PlayerController.cs",
+             "line": 42,
+             "promptUsed": "...",
+             "modelUsed": "claude-sonnet-4.6",
+             "resolution": "fixed|escalated|skipped",
+             "resolutionDetails": "..."
+           }
+         ]
+       }
+
+  10.4 Definiere die "Fallback-Strategie":
+
+       Wenn ALLE Versuche fehlschlagen:
+
+       a) Hans erstellt einen zusammenfassenden Bericht:
+          - Was sollte gemacht werden (Phase X, Aufgabe Y)
+          - Welche Fehler aufgetreten sind
+          - Was versucht wurde
+          - Code-Snippets der Versuche
+
+       b) Hans sendet diesen Bericht an den User via Telegram
+
+       c) Hans wartet auf Antwort:
+          - "Überspringe diese Phase" → Phase als SKIPPED markieren
+          - "Versuche es anders" → Günther soll komplett neuen Ansatz wählen
+          - "Ich helfe dir" → User gibt spezifische Anweisungen
+          - "[konkreter Fix]" → Hans wendet den Fix direkt an
+
+
+--------------------------------------------------------------------------------
+SCHRITT 11: Sub-Skill "phase-manager" erstellen
+--------------------------------------------------------------------------------
+
+BESCHREIBUNG:
+  Der Phase-Manager verwaltet den Fortschritt durch die 10 Phasen.
+  Er weiß immer genau, wo das Projekt steht, was als nächstes kommt,
+  und ob alle Voraussetzungen erfüllt sind.
+
+WAS SONNET MACHEN SOLL:
+
+  11.1 Definiere das Phase-State-Modell:
+
+       .plan/current-phase.json:
+       {
+         "project": "CatLongDrive",
+         "currentPhaseId": 3,
+         "currentPhaseName": "Kamera-System",
+         "status": "in_progress",     // planning|in_progress|testing|
+                                       // error_correction|completed|failed
+         "attempt": 1,
+         "maxAttempts": 5,
+         "startedAt": "2026-04-10T14:00:00Z",
+         "lastUpdate": "2026-04-10T14:30:00Z",
+         "copilotModel": "claude-sonnet-4.6",
+         "promptSent": "...",
+         "filesCreated": [],
+         "filesModified": [],
+         "errorsEncountered": 0
+       }
+
+  11.2 Definiere das Phase-History-Modell:
+
+       .plan/phase-history.json:
+       {
+         "phases": [
+           {
+             "id": 1,
+             "name": "Projektstruktur",
+             "status": "completed",
+             "attempts": 1,
+             "duration": "2m 30s",
+             "filesCreated": ["GameManager.cs", "InputManager.cs"],
+             "errors": [],
+             "startedAt": "...",
+             "completedAt": "..."
+           },
+           {
+             "id": 2,
+             "name": "Player Controller",
+             "status": "completed",
+             "attempts": 3,
+             "duration": "8m 15s",
+             "filesCreated": ["PlayerController.cs", "PlayerInput.cs"],
+             "errors": [
+               {"message": "CS0246...", "resolved": true}
+             ],
+             "startedAt": "...",
+             "completedAt": "..."
+           }
+         ]
+       }
+
+  11.3 Definiere die Phase-Übergangslogik:
+
+       FUNKTION: advanceToNextPhase()
+
+       ABLAUF:
+         a) Aktuelle Phase aus current-phase.json laden
+         b) Status prüfen:
+            - "completed" → OK, weiter
+            - "failed" → STOP, User benachrichtigen
+            - "in_progress" → Warte, noch nicht fertig
+         c) Aktuelle Phase in phase-history.json archivieren
+         d) Nächste Phase aus master-plan.json laden
+         e) current-phase.json aktualisieren:
+            - phaseId = N + 1
+            - status = "planning"
+            - attempt = 1
+         f) Günther um Phase-Prompt bitten (prompt-architect)
+         g) Status auf "in_progress" setzen
+         h) VS Code Bridge mit Prompt füttern
+         i) Unity-Watcher aktivieren
+
+       SPEZIALFALL Phase 10 (Finalisierung):
+         a) Unity Build starten:
+            Unity -batchmode -buildTarget StandaloneWindows64 \
+              -projectPath [pfad] -executeMethod AutoBuilder.Build -quit
+         b) Build-Ordner prüfen: Existiert die .exe?
+         c) User benachrichtigen:
+            "Dein Spiel '[Name]' ist fertig!
+             Build: [Pfad zur .exe]
+             Phasen: 10/10 abgeschlossen
+             Gesamtdauer: [Zeit]
+             Fehler behoben: [Anzahl]"
+
+  11.4 Definiere die Fortschritts-Benachrichtigung:
+
+       Hans informiert den User via Telegram über den Fortschritt:
+
+       - Bei Phase-Start:
+         "📋 Phase 3/10: Kamera-System
+          Starte jetzt mit der Implementierung..."
+
+       - Bei Phase-Erfolg:
+         "✅ Phase 3/10: Kamera-System abgeschlossen!
+          Erstellt: CameraController.cs, CameraFollow.cs
+          Dauer: 3 Minuten
+          Weiter mit Phase 4: Terrain-Generierung..."
+
+       - Bei Fehler-Korrektur:
+         "🔧 Phase 3/10: Fehler gefunden, korrigiere...
+          Versuch 2/5"
+
+       - Bei Komplett-Fertig:
+         "🎮 SPIEL FERTIG!
+          Name: Cat Long Drive
+          Phasen: 10/10 ✅
+          Dauer: 45 Minuten
+          Build: ~/GameDev-Projekte/CatLongDrive/Builds/"
+
+
+================================================================================
+
+TEIL D: DIE AUTONOME PIPELINE
+
+================================================================================
+
+
+--------------------------------------------------------------------------------
+SCHRITT 12: Den Master-Orchestrator bauen
+--------------------------------------------------------------------------------
+
+BESCHREIBUNG:
+  Der Master-Orchestrator ist die zentrale Steuerungslogik, die alle
+  Sub-Skills zusammenbringt. Er ist das Herzstück des ganzen Systems.
+
+WAS SONNET MACHEN SOLL:
+
+  12.1 Definiere den Haupt-Ablauf als Zustandsmaschine:
+
+       ZUSTÄNDE:
+       ┌─────────────┐
+       │   WAITING    │ ←── User hat noch keinen Auftrag gegeben
+       └──────┬──────┘
+              │ User: "Bau mir ein Spiel..."
+              ▼
+       ┌─────────────┐
+       │  ANALYZING   │ ←── Intent erkennen, Genre bestimmen
+       └──────┬──────┘
+              │
+              ▼
+       ┌─────────────┐
+       │  PLANNING    │ ←── Günther erstellt 10-Phasen-Plan
+       └──────┬──────┘
+              │
+              ▼
+       ┌─────────────┐     ┌─────────────┐
+       │ INITIALIZING │────▶│  EXECUTING   │ ←── Unity-Projekt erstellen
+       └─────────────┘     └──────┬──────┘
+                                  │
+                           ┌──────┴──────┐
+                           ▼             ▼
+                    ┌─────────────┐ ┌─────────────┐
+                    │  VERIFYING  │ │  CORRECTING  │ ←── Fehler beheben
+                    └──────┬──────┘ └──────┬──────┘
+                           │               │
+                           ▼               │
+                    ┌─────────────┐        │
+                    │ PHASE_DONE  │────────┘
+                    └──────┬──────┘
+                           │
+                    ┌──────┴──────┐
+                    ▼             ▼
+             ┌─────────────┐ ┌─────────────┐
+             │ NEXT_PHASE  │ │  BUILDING   │ ←── Letzte Phase
+             └──────┬──────┘ └──────┬──────┘
+                    │               │
+                    │ (zurück zu    ▼
+                    │  EXECUTING)┌─────────────┐
+                    │           │  COMPLETE    │
+                    │           └─────────────┘
+                    └──────▶ (nächste Phase)
+
+  12.2 Definiere die State-Transitions:
+
+       WAITING → ANALYZING:
+         Trigger: User sendet Nachricht mit Spiel-Bezug
+         Aktion: Nachricht analysieren, Genre erkennen
+
+       ANALYZING → PLANNING:
+         Trigger: Genre erkannt
+         Aktion: An Günther senden, 10-Phasen-Plan anfordern
+
+       PLANNING → INITIALIZING:
+         Trigger: Plan empfangen und validiert
+         Aktion: Unity-Projekt erstellen, Ordnerstruktur anlegen
+
+       INITIALIZING → EXECUTING:
+         Trigger: Projekt erstellt
+         Aktion: Phase 1 Prompt an Copilot senden
+
+       EXECUTING → VERIFYING:
+         Trigger: Copilot hat Code geschrieben
+         Aktion: Unity-Status prüfen
+
+       VERIFYING → PHASE_DONE:
+         Trigger: Unity kompiliert fehlerfrei
+         Aktion: Phase als abgeschlossen markieren
+
+       VERIFYING → CORRECTING:
+         Trigger: Unity meldet Fehler
+         Aktion: Fehler-Korrektur starten
+
+       CORRECTING → VERIFYING:
+         Trigger: Korrektur-Versuch abgeschlossen
+         Aktion: Unity-Status erneut prüfen
+
+       PHASE_DONE → NEXT_PHASE:
+         Trigger: Phase < 10
+         Aktion: Nächste Phase vorbereiten
+
+       PHASE_DONE → BUILDING:
+         Trigger: Phase == 10
+         Aktion: Unity Build starten
+
+       NEXT_PHASE → EXECUTING:
+         Trigger: Neuer Prompt bereit
+         Aktion: Prompt an Copilot senden
+
+       BUILDING → COMPLETE:
+         Trigger: Build erfolgreich
+         Aktion: User benachrichtigen
+
+  12.3 Speichere den Master-State:
+
+       .plan/orchestrator-state.json:
+       {
+         "state": "EXECUTING",
+         "project": "CatLongDrive",
+         "currentPhase": 3,
+         "totalPhases": 10,
+         "startedAt": "2026-04-10T14:00:00Z",
+         "lastTransition": "VERIFYING → PHASE_DONE",
+         "nextAction": "NEXT_PHASE → EXECUTING (Phase 4)",
+         "totalErrors": 2,
+         "totalRetries": 3,
+         "estimatedCompletion": "~30 min remaining"
+       }
+
+
+--------------------------------------------------------------------------------
+SCHRITT 13: Die Planungsphase implementieren
+--------------------------------------------------------------------------------
+
+BESCHREIBUNG:
+  Die Planungsphase ist der erste echte Schritt, nachdem der User
+  seinen Wunsch geäußert hat. Günther erstellt hier den Master-Plan.
+
+WAS SONNET MACHEN SOLL:
+
+  13.1 Implementiere die Genre-Erkennung:
+
+       Hans muss aus dem User-Prompt das Genre ableiten:
+
+       REGEL-BASIERT:
+       - Enthält "fahren", "Auto", "Drive", "Straße"
+         → Genre: driving-game
+       - Enthält "springen", "Plattform", "2D", "Jump"
+         → Genre: platformer
+       - Enthält "RPG", "Quest", "Level-up", "Charakter"
+         → Genre: rpg
+       - Enthält "bauen", "Block", "Crafting", "Sandbox", "Open World"
+         → Genre: sandbox
+       - Enthält keinen der Begriffe
+         → Günther fragen: "Welches Genre passt am besten für: [Prompt]?"
+
+  13.2 Implementiere den Plan-Generator:
+
+       ABLAUF:
+         a) Genre aus User-Prompt ableiten
+         b) Genre-Kontext laden: prompts/game-genres/[genre].txt
+         c) System-Prompt laden: prompts/architect-system.txt
+         d) Anfrage an Günther zusammenbauen:
+
+            System: [architect-system.txt]
+            User:
+              "NEUES SPIELPROJEKT
+
+               Wunsch des Users:
+               [Original-Prompt des Users]
+
+               Erkanntes Genre: [genre]
+               Genre-Kontext:
+               [genre-datei-inhalt]
+
+               Erstelle jetzt den 10-Phasen-Plan mit den detaillierten
+               Copilot-Prompts für jede Phase."
+
+         e) An Günther senden (web_fetch)
+         f) JSON-Antwort parsen
+         g) Validierung:
+            - Sind es genau 10 Phasen?
+            - Hat jede Phase einen copilotPrompt?
+            - Sind die expectedFiles plausibel?
+            - Baut jede Phase auf der vorherigen auf?
+         h) Speichern als .plan/master-plan.json
+         i) User informieren:
+            "📝 Plan erstellt! 10 Phasen für '[Spielname]':
+             Phase 1: [Name]
+             Phase 2: [Name]
+             ...
+             Phase 10: [Name]
+             Soll ich anfangen?"
+
+  13.3 Implementiere den Plan-Review durch den User:
+
+       OPTION A: Auto-Start
+         Hans beginnt sofort mit Phase 1 nach Plan-Erstellung.
+         (Wenn der User "komplett autonom" arbeiten lassen will)
+
+       OPTION B: User-Bestätigung
+         Hans sendet den Plan an den User und wartet auf:
+         - "Ja, starte" → Beginne Phase 1
+         - "Ändere Phase X" → Günther soll Phase X überarbeiten
+         - "Mehr Details zu Phase X" → Günther soll Phase X erklären
+         - "Stopp" → Abbrechen
+
+       EMPFEHLUNG: Beim ersten Mal Option B nutzen. Wenn der User
+       Vertrauen aufgebaut hat, auf Option A wechseln.
+       Dies sollte in gamedev-config.json konfigurierbar sein:
+       "autoStart": false (Standard) / true
+
+
+--------------------------------------------------------------------------------
+SCHRITT 14: Die Ausführungsschleife implementieren
+--------------------------------------------------------------------------------
+
+BESCHREIBUNG:
+  Die Ausführungsschleife ist der Kern des Systems. Sie arbeitet
+  Phase für Phase den Master-Plan ab.
+
+WAS SONNET MACHEN SOLL:
+
+  14.1 Implementiere die Hauptschleife (Pseudocode):
+
+       FUNKTION: executePhase(phaseId)
+
+       1. Phase-Daten aus master-plan.json laden
+          phase = masterPlan.phases[phaseId - 1]
+
+       2. Kontext sammeln:
+          - Welche Dateien existieren bereits?
+          - Wie sehen sie aus? (Inhalt lesen)
+          - Gab es Fehler in vorherigen Phasen?
+
+       3. Günther nach finalisiertem Prompt fragen:
+          (nutze prompt-architect.createPhasePrompt)
+          → Günther bekommt den Kontext und erstellt den
+            endgültigen Prompt für den Copilot
+
+       4. current-phase.json aktualisieren:
+          status = "in_progress"
+          attempt = 1
+
+       5. VS Code Bridge nutzen:
+          a) Zieldatei(en) erstellen/öffnen
+          b) Prompt an Copilot injizieren
+          c) Auf Ergebnis warten (Smart Wait)
+
+       6. Code validieren:
+          a) Datei(en) lesen
+          b) Grundlegende Syntax-Checks
+          c) Unity-Status prüfen (unity-watcher)
+
+       7. Ergebnis verarbeiten:
+          WENN Fehler:
+            → error-handler aufrufen
+            → Korrektur-Prompt erstellen
+            → Zurück zu Schritt 5 (max 5 Versuche)
+          WENN Erfolg:
+            → Phase als "completed" markieren
+            → phase-history.json aktualisieren
+            → User informieren
+            → advanceToNextPhase()
+
+  14.2 Implementiere die Kontext-Aggregation:
+
+       Da der Copilot nicht alle Dateien gleichzeitig sehen kann,
+       muss Hans clever entscheiden, welche Dateien er als Kontext
+       mitgibt.
+
+       STRATEGIE:
+         - Phase 1-3: Alle Dateien mitgeben (noch wenig Code)
+         - Phase 4-7: Nur Dateien die direkt relevant sind
+         - Phase 8-10: Nur die aktuelle Datei + Interface-Dateien
+
+       IMPLEMENTIERUNG:
+         a) Günther sagt in seiner Antwort welche "contextFiles" nötig sind
+         b) Hans liest nur diese Dateien ein
+         c) Hans fasst den Inhalt zusammen wenn er zu lang wird:
+            "// [Dateiname] - [X Zeilen]
+             // Enthält: [Klassen/Methoden Zusammenfassung]"
+
+  14.3 Implementiere das Timing-Management:
+
+       ZEITPLAN pro Phase:
+
+       Planung (Günther):           ~10 Sekunden
+       Datei-Vorbereitung:          ~2 Sekunden
+       Copilot-Injection:           ~5 Sekunden
+       Copilot-Generierung:         ~30-120 Sekunden
+       Unity-Kompilierung:          ~10-30 Sekunden
+       Status-Check:                ~2 Sekunden
+       ──────────────────────────────────────────
+       Gesamt pro Phase (Idealfall): ~1-3 Minuten
+       Gesamt pro Phase (mit Fehlern): ~5-10 Minuten
+
+       Gesamtprojekt (10 Phasen):
+       Idealfall: ~15-30 Minuten
+       Realistisch: ~45-90 Minuten
+       Worst Case: ~2-3 Stunden
+
+
+--------------------------------------------------------------------------------
+SCHRITT 15: Das Fehler-Korrektur-System bauen
+--------------------------------------------------------------------------------
+
+BESCHREIBUNG:
+  Das Fehler-Korrektur-System ist das Sicherheitsnetz. Es stellt
+  sicher, dass Fehler erkannt, analysiert und behoben werden.
+
+WAS SONNET MACHEN SOLL:
+
+  15.1 Implementiere den Error-Classification-Algorithmus:
+
+       EINGABE: Unity-Fehlermeldung (String)
+
+       KLASSIFIKATION:
+         a) "CS" + 4-stellige Zahl → Kompilierungsfehler
+            Beispiel: CS0246, CS1061, CS0029
+            → Severity: CRITICAL
+            → Copilot muss Code korrigieren
+
+         b) "NullReferenceException" → Runtime-Fehler
+            → Severity: MAJOR
+            → Copilot muss Null-Checks hinzufügen
+
+         c) "Warning" → Warnung
+            → Severity: MINOR
+            → Kann ignoriert werden (aber loggen)
+
+         d) "MissingComponentException" → Setup-Fehler
+            → Severity: MAJOR
+            → Editor-Script muss Komponenten hinzufügen
+
+         e) "IndexOutOfRange" → Logik-Fehler
+            → Severity: MAJOR
+            → Copilot muss Array-Bounds prüfen
+
+         f) Unbekannter Fehler
+            → Severity: UNKNOWN
+            → Günther um Analyse bitten
+
+  15.2 Implementiere den Korrektur-Prompt-Generator:
+
+       FUNKTION: generateCorrectionPrompt(error, sourceCode, attempt)
+
+       Versuch 1:
+         "Der folgende Code hat einen Fehler:
+          Datei: [fileName]
+          Fehler: [errorMessage]
+          Code:
+          [sourceCode]
+
+          Bitte korrigiere den Fehler."
+
+       Versuch 2:
+         "Der vorherige Korrekturversuch hat nicht funktioniert.
+          ORIGINAL FEHLER: [errorMessage]
+          NEUER FEHLER: [newErrorMessage]
+
+          Hier ist der aktuelle Code:
+          [sourceCode]
+
+          HINWEIS: Der Fehler liegt wahrscheinlich bei [Günthers Analyse].
+          Bitte korrigiere das gezielt."
+
+       Versuch 3 (Model-Upgrade zu Opus):
+         "WICHTIG: Dies ist ein schwieriger Fehler, der bereits 2x
+          nicht behoben werden konnte.
+
+          FEHLERHISTORIE:
+          1. Versuch: [errror1] → [fix1] → [result1]
+          2. Versuch: [error2] → [fix2] → [result2]
+
+          AKTUELLER CODE:
+          [sourceCode]
+
+          AUFGABE: Analysiere die Fehlerhistorie und finde die
+          tatsächliche Ursache. Schreibe den gesamten Code der
+          Datei neu, korrekt und vollständig."
+
+  15.3 Implementiere den "Nuclear Option":
+
+       Wenn nach 5 Versuchen nichts klappt:
+
+       a) Hans sammelt ALLE Informationen:
+          - Der originale Phase-Prompt
+          - Alle 5 Versuche mit Fehlern
+          - Der aktuelle Code-Stand
+          - Die Unity-Fehlermeldungen
+
+       b) Hans erstellt einen "Incident Report":
+          """
+          ⚠️ PHASE [X] FEHLGESCHLAGEN
+
+          Aufgabe: [Phase-Name]
+          Versuche: 5/5 erschöpft
+
+          Fehler-Zusammenfassung:
+          [Übersicht]
+
+          Letzte Fehlermeldung:
+          [Error]
+
+          Bitte hilf mir:
+          1. Überspringe diese Phase: /skip
+          2. Gib mir einen Hinweis: [Text]
+          3. Ich mache es selbst: /manual
+          4. Komplett neuer Ansatz: /reset-phase
+          """
+
+       c) Hans sendet das an den User via Telegram
+       d) Wartet auf Antwort und handelt entsprechend
+
+
+--------------------------------------------------------------------------------
+SCHRITT 16: Das Kontext-Management implementieren
+--------------------------------------------------------------------------------
+
+BESCHREIBUNG:
+  Der Kontext ist das Gedächtnis des Systems. Hans muss genau wissen,
+  was bisher passiert ist, um kluge Entscheidungen zu treffen.
+
+WAS SONNET MACHEN SOLL:
+
+  16.1 Implementiere den "Project Scanner":
+
+       FUNKTION: scanProject(projectPath)
+
+       OUTPUT:
+       {
+         "totalFiles": 15,
+         "totalLines": 2340,
+         "scripts": [
+           {
+             "path": "Assets/Scripts/Core/GameManager.cs",
+             "lines": 85,
+             "classes": ["GameManager"],
+             "publicMethods": ["PauseGame", "ResumeGame", "QuitGame"],
+             "dependencies": []
+           },
+           {
+             "path": "Assets/Scripts/Player/PlayerController.cs",
+             "lines": 230,
+             "classes": ["PlayerController"],
+             "publicMethods": ["Move", "Jump", "Interact"],
+             "dependencies": ["GameManager", "InputManager"]
+           }
+         ],
+         "scenes": ["MainMenu.unity", "GameScene.unity"],
+         "prefabs": ["Player.prefab", "Enemy.prefab"],
+         "materials": ["PlayerMat.mat", "GroundMat.mat"]
+       }
+
+  16.2 Implementiere den "Context Compressor":
+
+       Problem: Bei Phase 8 können es 5000+ Zeilen Code sein.
+       Günther und der Copilot haben begrenzte Kontextfenster.
+
+       LÖSUNG:
+         a) Für Günther (Kimi K2.5, 200k Kontext):
+            → Kann viel Kontext aufnehmen
+            → Schicke trotzdem nur relevante Dateien mit
+            → Fasse irrelevante Dateien zusammen
+
+         b) Für den Copilot (Sonnet 4.6):
+            → Öffne die relevante Datei in VS Code
+            → Der Copilot sieht den offenen Workspace
+            → VS Code zeigt automatisch Related Files
+
+       STRATEGIE:
+         Phase 1-3:  Schicke alle Dateien komplett
+         Phase 4-6:  Schicke relevante Dateien komplett, andere als Summary
+         Phase 7-9:  Schicke nur die aktuelle Datei + Interfaces
+         Phase 10:   Kein Code nötig, nur Build-Konfiguration
+
+  16.3 Implementiere den "Memory Writer":
+
+       Nach jeder Phase speichert Hans die Learnings:
+
+       Datei: .plan/learnings.json
+       {
+         "patterns": [
+           {
+             "phase": 2,
+             "learning": "WheelCollider braucht Rigidbody auf Parent-Objekt",
+             "errorThatTaughtUs": "MissingComponentException",
+             "fix": "RequireComponent-Attribut hinzugefügt"
+           }
+         ],
+         "modelPreferences": {
+           "physics": "opus",
+           "ui": "sonnet",
+           "boilerplate": "haiku"
+         },
+         "timingData": {
+           "avgPhaseTime": "3m 20s",
+           "avgCopilotWait": "45s",
+           "avgCompileTime": "15s"
+         }
+       }
+
+
+================================================================================
+
+TEIL E: UNITY-INTEGRATION
+
+================================================================================
+
+
+--------------------------------------------------------------------------------
+SCHRITT 17: Unity-Projekt-Templates vorbereiten
+--------------------------------------------------------------------------------
+
+BESCHREIBUNG:
+  Um nicht bei jedem Spiel von Null anfangen zu müssen, erstellen
+  wir Unity-Projekt-Templates mit vordefinierten Basisskripten.
+
+WAS SONNET MACHEN SOLL:
+
+  17.1 Erstelle das "Base Template" mit folgenden Dateien:
+
+       a) Singleton.cs - Wiederverwendbare Singleton-Klasse:
+          """
+          using UnityEngine;
+
+          public class Singleton<T> : MonoBehaviour where T : MonoBehaviour
+          {
+              public static T Instance { get; private set; }
+
+              protected virtual void Awake()
+              {
+                  if (Instance != null && Instance != this)
+                  {
+                      Destroy(gameObject);
+                      return;
+                  }
+                  Instance = this as T;
+                  DontDestroyOnLoad(gameObject);
+              }
+          }
+          """
+
+       b) GameManager.cs - Basis-Spielsteuerung (bereits vorhanden,
+          siehe Schritt 6.2)
+
+       c) SceneLoader.cs - Szenen-Management:
+          """
+          using UnityEngine;
+          using UnityEngine.SceneManagement;
+          using System.Collections;
+
+          public class SceneLoader : Singleton<SceneLoader>
+          {
+              public void LoadScene(string sceneName)
+              {
+                  StartCoroutine(LoadSceneAsync(sceneName));
+              }
+
+              private IEnumerator LoadSceneAsync(string sceneName)
+              {
+                  AsyncOperation op = SceneManager.LoadSceneAsync(sceneName);
+                  while (!op.isDone)
+                  {
+                      yield return null;
+                  }
+              }
+          }
+          """
+
+       d) InputManager.cs - Basis-Input (Unity New Input System):
+          → Template das je nach Genre angepasst wird
+
+       e) AudioManager.cs - Einfacher Sound-Manager:
+          → Plays SFX und Musik, Volume Control
+
+  17.2 Erstelle Genre-spezifische Templates:
+
+       Für Driving Games:
+       - VehicleController.cs (Basis mit WheelColliders)
+       - SpeedometerUI.cs (Geschwindigkeitsanzeige)
+       - FuelSystem.cs (Treibstoff)
+
+       Für Platformer:
+       - PlatformerController.cs (2D Character Controller)
+       - GroundCheck.cs (Bodenerkennung)
+       - CoinCollector.cs (Collectible-System)
+
+       Für RPGs:
+       - RPGCharacterController.cs (Third Person)
+       - DialogueSystem.cs (Dialog-Basis)
+       - InventorySystem.cs (Inventar-Basis)
+
+       Für Sandbox:
+       - FPSController.cs (First Person)
+       - BlockPlacer.cs (Block-Platzierung)
+       - CraftingSystem.cs (Crafting-Basis)
+
+
+--------------------------------------------------------------------------------
+SCHRITT 18: Unity Editor-Skripte für Automation
+--------------------------------------------------------------------------------
+
+BESCHREIBUNG:
+  Unity Editor-Skripte laufen nur im Editor (nicht im fertigen Spiel)
+  und können den Editor automatisieren - z.B. Objekte erstellen,
+  Komponenten zuweisen, Szenen aufbauen.
+
+WAS SONNET MACHEN SOLL:
+
+  18.1 Erstelle AutoBuilder.cs:
+
+       Dieses Script wird von Hans per Unity CLI aufgerufen um
+       das Projekt zu bauen.
+
+       """
+       using UnityEditor;
+       using UnityEditor.Build.Reporting;
+       using System.IO;
+
+       public class AutoBuilder
+       {
+           [MenuItem("Build/Build Game")]
+           public static void Build()
+           {
+               string buildPath = Path.Combine(
+                   System.Environment.CurrentDirectory, "Builds"
+               );
+               Directory.CreateDirectory(buildPath);
+
+               BuildPlayerOptions options = new BuildPlayerOptions
+               {
+                   scenes = GetAllScenes(),
+                   locationPathName = Path.Combine(buildPath, "game.exe"),
+                   target = BuildTarget.StandaloneWindows64,
+                   options = BuildOptions.None
+               };
+
+               BuildReport report = BuildPipeline.BuildPlayer(options);
+
+               // Status in Datei schreiben für Hans
+               string statusPath = Path.Combine(
+                   System.Environment.CurrentDirectory, ".plan", "build-status.json"
+               );
+
+               if (report.summary.result == BuildResult.Succeeded)
+               {
+                   File.WriteAllText(statusPath,
+                       "{\"status\":\"success\",\"size\":\""
+                       + report.summary.totalSize + "\"}");
+               }
+               else
+               {
+                   File.WriteAllText(statusPath,
+                       "{\"status\":\"failed\",\"errors\":\""
+                       + report.summary.totalErrors + "\"}");
+               }
+           }
+
+           static string[] GetAllScenes()
+           {
+               var scenes = new System.Collections.Generic.List<string>();
+               foreach (var scene in EditorBuildSettings.scenes)
+               {
+                   if (scene.enabled)
+                       scenes.Add(scene.path);
+               }
+               return scenes.ToArray();
+           }
+       }
+       """
+
+  18.2 Erstelle SceneBootstrapper.cs:
+
+       Dieses Script erstellt automatisch die Basis-GameObjects in
+       einer neuen Szene.
+
+       """
+       using UnityEditor;
+       using UnityEngine;
+
+       public class SceneBootstrapper
+       {
+           [MenuItem("Tools/Bootstrap Scene")]
+           public static void BootstrapScene()
+           {
+               // GameManager
+               if (Object.FindObjectOfType<GameManager>() == null)
+               {
+                   var gmObj = new GameObject("GameManager");
+                   gmObj.AddComponent<GameManager>();
+               }
+
+               // Main Camera mit Cinemachine (falls vorhanden)
+               var cam = Camera.main;
+               if (cam == null)
+               {
+                   var camObj = new GameObject("Main Camera");
+                   camObj.AddComponent<Camera>();
+                   camObj.tag = "MainCamera";
+               }
+
+               // Directional Light
+               if (Object.FindObjectOfType<Light>() == null)
+               {
+                   var lightObj = new GameObject("Directional Light");
+                   var light = lightObj.AddComponent<Light>();
+                   light.type = LightType.Directional;
+                   lightObj.transform.rotation = Quaternion.Euler(50f, -30f, 0f);
+               }
+
+               // Event System (für UI)
+               if (Object.FindObjectOfType<UnityEngine.EventSystems.EventSystem>() == null)
+               {
+                   var esObj = new GameObject("EventSystem");
+                   esObj.AddComponent<UnityEngine.EventSystems.EventSystem>();
+                   esObj.AddComponent<UnityEngine.EventSystems.StandaloneInputModule>();
+               }
+
+               Debug.Log("[SceneBootstrapper] Scene bootstrapped successfully!");
+           }
+       }
+       """
+
+  18.3 Erstelle AutoComponentAssigner.cs:
+
+       Dieses Script weist Komponenten automatisch zu basierend auf
+       Namenskonventionen.
+
+       """
+       using UnityEditor;
+       using UnityEngine;
+
+       public class AutoComponentAssigner
+       {
+           [MenuItem("Tools/Auto-Assign Components")]
+           public static void AssignComponents()
+           {
+               // Finde alle GameObjects in der Szene
+               var allObjects = Object.FindObjectsOfType<GameObject>();
+
+               foreach (var obj in allObjects)
+               {
+                   // Wenn ein Script mit dem gleichen Namen existiert,
+                   // weise es automatisch zu
+                   string scriptName = obj.name + "Controller";
+                   var scriptType = System.Type.GetType(scriptName);
+
+                   if (scriptType != null && obj.GetComponent(scriptType) == null)
+                   {
+                       obj.AddComponent(scriptType);
+                       Debug.Log($"[AutoAssign] {scriptName} → {obj.name}");
+                   }
+               }
+           }
+       }
+       """
+
+
+--------------------------------------------------------------------------------
+SCHRITT 19: Unity Build-Pipeline automatisieren
+--------------------------------------------------------------------------------
+
+BESCHREIBUNG:
+  Der letzte Schritt in der Pipeline ist der Build. Hans muss Unity
+  über die Kommandozeile steuern können.
+
+WAS SONNET MACHEN SOLL:
+
+  19.1 Dokumentiere alle Unity CLI-Befehle:
+
+       Datei: references/unity-cli-commands.txt
+
+       """
+       UNITY COMMAND LINE REFERENZ (macOS)
+
+       Unity Binary:
+       /Applications/Unity/Hub/Editor/[VERSION]/Unity.app/Contents/MacOS/Unity
+
+       NEUES PROJEKT ERSTELLEN:
+       Unity -createProject [pfad] -quit -batchmode
+
+       PROJEKT ÖFFNEN:
+       Unity -projectPath [pfad]
+
+       BUILD ERSTELLEN:
+       Unity -batchmode -projectPath [pfad] \
+         -executeMethod AutoBuilder.Build \
+         -buildTarget StandaloneWindows64 \
+         -quit -logFile build.log
+
+       TESTS AUSFÜHREN:
+       Unity -batchmode -projectPath [pfad] \
+         -runTests -testResults results.xml \
+         -quit
+
+       IMPORTIEREN VON PACKAGES:
+       Unity -batchmode -projectPath [pfad] \
+         -importPackage [package.unitypackage] \
+         -quit
+
+       WICHTIGE FLAGS:
+       -batchmode      → Kein UI, Headless-Modus
+       -quit           → Nach Ausführung beenden
+       -logFile [pfad] → Log in Datei schreiben
+       -nographics     → Ohne GPU (für Server)
+       """
+
+  19.2 Erstelle den Build-Workflow:
+
+       ABLAUF:
+         a) Hans prüft ob alle Szenen in Build Settings sind:
+            → Lese ProjectSettings/EditorBuildSettings.asset
+            → Prüfe ob mindestens eine Szene eingetragen ist
+
+         b) Hans startet den Build:
+            Unity -batchmode -projectPath [pfad] \
+              -executeMethod AutoBuilder.Build \
+              -quit -logFile .plan/build.log
+
+         c) Hans wartet auf Build:
+            → Überwache .plan/build-status.json
+            → Prüfe alle 5 Sekunden
+            → Timeout: 10 Minuten
+
+         d) Build-Ergebnis lesen:
+            → "success" → Build-Pfad dem User mitteilen
+            → "failed" → Build-Log analysieren, Fehler beheben
+
+  19.3 Erstelle den Post-Build-Cleanup:
+
+       Nach erfolgreichem Build:
+         a) Build-Größe melden
+         b) .plan/ Ordner NICHT in Build kopieren
+         c) README.md mit Spiel-Info erstellen
+         d) Optional: ZIP des Builds erstellen
+         e) User benachrichtigen mit Pfad zum Build
+
+
+================================================================================
+
+TEIL F: QUALITÄTSSICHERUNG UND TESTS
+
+================================================================================
+
+
+--------------------------------------------------------------------------------
+SCHRITT 20: Testframework für den Orchestrator
+--------------------------------------------------------------------------------
+
+BESCHREIBUNG:
+  Bevor das System zum ersten Mal "scharf" geschaltet wird, sollte
+  es getestet werden. Wir erstellen Tests für jeden Sub-Skill.
+
+WAS SONNET MACHEN SOLL:
+
+  20.1 Erstelle einen "Dry Run" Modus:
+
+       KONZEPT:
+       Im Dry-Run-Modus durchläuft das System den gesamten Workflow,
+       aber:
+       - Günther wird NICHT wirklich angefragt (Mock-Daten)
+       - Der Copilot wird NICHT wirklich gesteuert (Mock-Code)
+       - Unity wird NICHT wirklich kompiliert (Mock-Status)
+
+       ZWECK:
+       Testen ob die Zustandsmaschine korrekt funktioniert,
+       ob Dateien richtig erstellt werden, ob die Phase-Übergänge
+       stimmen.
+
+       IMPLEMENTIERUNG:
+       In gamedev-config.json:
+       "dryRun": true/false
+
+       Wenn dryRun == true:
+       - Statt web_fetch an Günther → Lade Mock-Plan aus
+         test-data/mock-master-plan.json
+       - Statt VS Code Bridge → Schreibe Mock-Code in Dateien
+       - Statt Unity-Watcher → Lade Mock-Status aus
+         test-data/mock-unity-status.json
+
+  20.2 Erstelle Mock-Daten:
+
+       test-data/mock-master-plan.json:
+       {
+         "gameName": "TestGame",
+         "gameDescription": "Ein einfaches Testspiel",
+         "totalPhases": 3,
+         "phases": [
+           {
+             "id": 1,
+             "name": "Projektstruktur",
+             "copilotPrompt": "Erstelle GameManager.cs",
+             "expectedFiles": ["Assets/Scripts/Core/GameManager.cs"],
+             "validationCriteria": ["Datei existiert"]
+           },
+           {
+             "id": 2,
+             "name": "Player Controller",
+             "copilotPrompt": "Erstelle PlayerController.cs",
+             "expectedFiles": ["Assets/Scripts/Player/PlayerController.cs"],
+             "validationCriteria": ["Datei existiert", "Klasse vorhanden"]
+           },
+           {
+             "id": 3,
+             "name": "Build",
+             "copilotPrompt": "Finales Build",
+             "expectedFiles": ["Builds/game.exe"],
+             "validationCriteria": ["Build existiert"]
+           }
+         ]
+       }
+
+  20.3 Erstelle Test-Szenarien:
+
+       Test 1: "Happy Path" (alles klappt)
+         → Alle Phasen erfolgreich
+         → Kein Fehler
+         → Build erfolgreich
+
+       Test 2: "Single Error" (ein Fehler pro Phase)
+         → Phase 2 hat einen Fehler
+         → Wird beim 2. Versuch behoben
+         → Rest läuft durch
+
+       Test 3: "Multiple Errors" (mehrere Fehler)
+         → Phase 2 hat 3 Fehler nacheinander
+         → Wird beim 4. Versuch behoben
+
+       Test 4: "Max Retries" (alle Versuche erschöpft)
+         → Phase 2 hat 5+ Fehler
+         → User wird benachrichtigt
+         → User sagt "skip"
+         → Phase 3 wird ausgeführt
+
+       Test 5: "Full Pipeline" (echter Durchlauf)
+         → Kein Dry-Run
+         → Einfaches Spiel: "Erstelle einen roten Würfel der
+           springt wenn man Leertaste drückt"
+         → Prüfe ob Build existiert
+
+
+--------------------------------------------------------------------------------
+SCHRITT 21: End-to-End Testlauf mit Beispiel-Game
+--------------------------------------------------------------------------------
+
+BESCHREIBUNG:
+  Der erste echte Test des Systems. Ein einfaches Spiel von Anfang
+  bis Ende autonom erstellen lassen.
+
+WAS SONNET MACHEN SOLL:
+
+  21.1 Wähle ein einfaches Testspiel:
+
+       VORSCHLAG: "Jumping Cube"
+       - Ein roter Würfel auf einer grünen Fläche
+       - Leertaste = Springen
+       - Ziel: Score hochzählen (jeder Sprung = 1 Punkt)
+       - UI: Score-Anzeige oben links
+       - Das ist simpel genug um Fehler schnell zu finden
+
+  21.2 Definiere die erwarteten Phasen:
+
+       Phase 1: Projektstruktur + Basis-Szene
+       Phase 2: Würfel-Controller (Springen)
+       Phase 3: Kamera (statisch, schaut auf Würfel)
+       Phase 4: Boden + Physik
+       Phase 5: Score-System
+       Phase 6: UI (Score-Anzeige)
+       Phase 7: Polish (Partikel beim Springen)
+       Phase 8: Sound (Spring-Sound)
+       Phase 9: Main Menu
+       Phase 10: Build
+
+  21.3 Dokumentiere den Testlauf:
+
+       Erstelle: .plan/test-run-log.txt
+
+       Für jede Phase notieren:
+       - Startzeit
+       - Prompt der an Günther ging
+       - Prompt der an Copilot ging
+       - Erstellte Dateien
+       - Fehler (falls vorhanden)
+       - Korrekturversuche
+       - Endstatus
+       - Dauer
+
+  21.4 Evaluiere die Ergebnisse:
+
+       Nach dem Testlauf:
+       a) Hat der Build funktioniert?
+       b) Funktioniert das Spiel im Unity Editor?
+       c) Wie viele Fehler gab es?
+       d) Wie lange hat es gedauert?
+       e) Welche Prompts waren schlecht formuliert?
+       f) Was muss verbessert werden?
+
+       Dokumentiere alles in: .plan/test-evaluation.txt
+
+
+================================================================================
+
+TEIL G: ERWEITERUNGEN UND OPTIMIERUNGEN
+
+================================================================================
+
+
+--------------------------------------------------------------------------------
+SCHRITT 22: Modell-Routing (Haiku vs Sonnet vs Opus)
+--------------------------------------------------------------------------------
+
+BESCHREIBUNG:
+  Nicht jede Aufgabe braucht das teuerste Modell. Intelligentes
+  Routing spart Geld und Zeit.
+
+WAS SONNET MACHEN SOLL:
+
+  22.1 Implementiere die Routing-Logik:
+
+       ROUTING-TABELLE:
+
+       | Aufgabe                    | Modell          | Begründung       |
+       |----------------------------|-----------------|------------------|
+       | Boilerplate Code           | Haiku           | Schnell, günstig |
+       | Standard Game-Logik        | Sonnet 4.6      | Bester Allround  |
+       | Komplexe Physik            | Opus            | Max Intelligenz  |
+       | Prozedurale Generierung    | Opus            | Erfordert Logik  |
+       | UI/HUD Code                | Sonnet 4.6      | Standard         |
+       | Shader/Material Code       | Opus            | Spezialisiert    |
+       | Bug-Fixing (einfach)       | Sonnet 4.6      | Standard         |
+       | Bug-Fixing (komplex)       | Opus            | Braucht Analyse  |
+       | Editor-Scripts             | Haiku           | Einfache API     |
+       | Datei-Erstellung           | Haiku           | Simpel           |
+
+  22.2 Implementiere dynamisches Modell-Switching:
+
+       LOGIK:
+         a) Standard: Sonnet 4.6
+         b) Wenn Phase "physics", "procedural", "AI" enthält → Opus
+         c) Wenn Phase "ui", "menu", "settings" enthält → Sonnet
+         d) Wenn Phase "structure", "config", "template" enthält → Haiku
+         e) Wenn Fehler-Korrektur Versuch >= 3 → Opus (Eskalation)
+
+  22.3 Logge die Modell-Nutzung:
+
+       Datei: .plan/model-usage.json
+       {
+         "haiku": {"calls": 5, "tokens": 2000, "cost": "$0.005"},
+         "sonnet": {"calls": 12, "tokens": 15000, "cost": "$0.09"},
+         "opus": {"calls": 3, "tokens": 8000, "cost": "$0.30"},
+         "total": "$0.395"
+       }
+
+
+--------------------------------------------------------------------------------
+SCHRITT 23: Mehrstufiges Memory-System
+--------------------------------------------------------------------------------
+
+BESCHREIBUNG:
+  Über mehrere Projekte hinweg soll das System lernen und besser
+  werden. Dafür braucht es ein Memory-System.
+
+WAS SONNET MACHEN SOLL:
+
+  23.1 Implementiere das Projekt-Memory:
+
+       Nach jedem abgeschlossenen Projekt speichert Hans:
+
+       workspace/memory/gamedev-projects.json:
+       {
+         "projects": [
+           {
+             "name": "CatLongDrive",
+             "genre": "driving-game",
+             "startDate": "2026-04-10",
+             "endDate": "2026-04-10",
+             "duration": "47m",
+             "phases": 10,
+             "totalErrors": 7,
+             "totalRetries": 12,
+             "modelUsage": {...},
+             "learnings": [
+               "WheelCollider braucht Parent-Rigidbody",
+               "Terrain Generation besser mit Perlin Noise",
+               "Cinemachine für Kamera statt eigener Code"
+             ],
+             "qualityRating": null  // User soll bewerten
+           }
+         ]
+       }
+
+  23.2 Implementiere das "Pattern Library":
+
+       Über Zeit sammelt Hans Patterns die funktionieren:
+
+       workspace/memory/gamedev-patterns.json:
+       {
+         "patterns": {
+           "vehicle-physics": {
+             "prompt": "Nutze WheelCollider mit Rigidbody auf Parent...",
+             "successRate": 0.8,
+             "timesUsed": 3
+           },
+           "camera-follow": {
+             "prompt": "Nutze Cinemachine Virtual Camera...",
+             "successRate": 1.0,
+             "timesUsed": 5
+           }
+         }
+       }
+
+  23.3 Nutze Learnings für zukünftige Projekte:
+
+       Wenn Günther einen neuen Plan erstellt, kann Hans ihm
+       die Learnings mitgeben:
+
+       "Basierend auf vergangenen Projekten:
+        - Nutze immer Cinemachine statt eigenem Camera-Code
+        - WheelCollider braucht Parent-Rigidbody
+        - TextMeshPro statt legacy Text-Komponte
+        Berücksichtige das bei deinem Plan."
+
+
+--------------------------------------------------------------------------------
+SCHRITT 24: User-Feedback-Integration
+--------------------------------------------------------------------------------
+
+BESCHREIBUNG:
+  Der User soll das fertige Spiel bewerten können, damit das System
+  lernt was gut und was schlecht war.
+
+WAS SONNET MACHEN SOLL:
+
+  24.1 Implementiere ein Feedback-System:
+
+       Nachdem ein Spiel fertig ist, fragt Hans via Telegram:
+
+       "🎮 Spiel fertig! Wie findest du es?"
+       "Bewerte von 1-5:"
+       "1 ⭐ - Schlecht, funktioniert kaum"
+       "2 ⭐⭐ - Geht so, viele Bugs"
+       "3 ⭐⭐⭐ - OK, spielbar aber simpel"
+       "4 ⭐⭐⭐⭐ - Gut, macht Spaß"
+       "5 ⭐⭐⭐⭐⭐ - Super, genau was ich wollte"
+
+  24.2 Implementiere Detail-Feedback:
+
+       "Was war gut?"
+       - Code-Qualität
+       - Spielmechaniken
+       - Grafik
+       - Performance
+
+       "Was war schlecht?"
+       - Bugs
+       - Fehlende Features
+       - Schlechte Performance
+       - Unverständliche Steuerung
+
+  24.3 Speichere und nutze Feedback:
+
+       Hans speichert das Feedback in gamedev-projects.json
+       und nutzt es um:
+         a) Prompts zu verbessern
+         b) Mehr Zeit für schlecht bewertete Bereiche einzuplanen
+         c) Günther zusätzlichen Kontext zu geben
+
+
+================================================================================
+
+ZUSAMMENFASSUNG: WAS MUSS IN WELCHER REIHENFOLGE PASSIEREN
+
+================================================================================
+
+PHASE I: SETUP (Schritte 1-4)
+  → System einrichten, Verbindungen testen
+  → Ergebnis: Alles läuft, Konfiguration steht
+
+PHASE II: SKILL-BAU (Schritte 5-11)
+  → Alle Sub-Skills erstellen und in OpenClaw integrieren
+  → Ergebnis: Hans hat alle Werkzeuge
+
+PHASE III: PIPELINE (Schritte 12-16)
+  → Die autonome Schleife zusammenbauen
+  → Ergebnis: System kann theoretisch autonom arbeiten
+
+PHASE IV: UNITY (Schritte 17-19)
+  → Unity-Templates und Editor-Skripte erstellen
+  → Ergebnis: Unity-Integration fertig
+
+PHASE V: TEST (Schritte 20-21)
+  → System testen mit einfachem Spiel
+  → Ergebnis: Erster autonomer Durchlauf erfolgreich
+
+PHASE VI: OPTIMIERUNG (Schritte 22-24)
+  → Modell-Routing, Memory, Feedback
+  → Ergebnis: System wird intelligenter über Zeit
+
+
+================================================================================
+
+ANHANG A: VOLLSTÄNDIGE DATEI-ÜBERSICHT
+
+================================================================================
+
+NEUE DATEIEN DIE ERSTELLT WERDEN MÜSSEN:
+
+Konfiguration:
+  gamedev-config.json
+  check-prerequisites.sh
+  setup-gamedev-environment.sh
+  environment-info.txt
+
+Skill: game-dev-orchestrator/
+  SKILL.md
+  prompts/architect-system.txt
+  prompts/error-analysis.txt
+  prompts/phase-transition.txt
+  prompts/copilot-system-prompt.txt
+  prompts/game-genres/driving-game.txt
+  prompts/game-genres/platformer.txt
+  prompts/game-genres/rpg.txt
+  prompts/game-genres/sandbox.txt
+  references/ollama-api.txt
+  references/vscode-cli.txt
+  references/copilot-modes.txt
+  references/ui-automation.txt
+  references/approach-decision.txt
+  references/unity-project-structure.txt
+  references/unity-cli-commands.txt
+  references/csharp-patterns.txt
+  references/common-unity-errors.txt
+  templates/unity-gitignore.txt
+  templates/unity-editorconfig.txt
+  templates/base-game-manager.cs.txt
+  templates/base-player-controller.cs.txt
+  templates/AutoCompileWatcher.cs.txt
+  templates/AutoBuilder.cs.txt
+  templates/SceneBootstrapper.cs.txt
+  templates/AutoComponentAssigner.cs.txt
+  templates/Singleton.cs.txt
+  templates/SceneLoader.cs.txt
+  templates/AudioManager.cs.txt
+  templates/InputManager.cs.txt
+
+Memory:
+  memory/gamedev-state.json
+  memory/gamedev-projects.json
+  memory/gamedev-patterns.json
+
+Test:
+  test-data/mock-master-plan.json
+  test-data/mock-unity-status.json
+
+ZU AKTUALISIERENDE DATEIEN:
+  openclaw.json (Agent-Tools erweitern)
+  workspace/TOOLS.md (Game-Dev Infos)
+  workspace/USER.md (Interessen erweitern)
+
+
+================================================================================
+
+ANHANG B: RISIKEN UND MITIGATION
+
+================================================================================
+
+RISIKO 1: Copilot-Steuerung funktioniert nicht zuverlässig
+  → MITIGATION: Fallback auf direkte API-Aufrufe
+  → Hans schreibt Code selbst über Günther + eigene Intelligenz
+
+RISIKO 2: Unity-Fehler sind zu komplex für automatische Korrektur
+  → MITIGATION: Max 5 Versuche, dann User einbeziehen
+  → Learnings speichern für nächstes Mal
+
+RISIKO 3: Kontext-Fenster reicht nicht für großes Projet
+  → MITIGATION: Intelligentes Kontext-Management (Schritt 16)
+  → Nur relevante Dateien mitgeben
+
+RISIKO 4: Günther (Kimi K2.5) formuliert schlechte Prompts
+  → MITIGATION: Prompt-Templates als Leitplanken
+  → Genre-spezifische Vorlagen
+  → Learnings aus vorherigen Projekten
+
+RISIKO 5: Unity CLI auf macOS funktioniert anders
+  → MITIGATION: Pfade in gamedev-config.json konfigurierbar
+  → Ausführliche CLI-Dokumentation (Schritt 19.1)
+
+RISIKO 6: Rate Limits bei Ollama Cloud oder Copilot
+  → MITIGATION: Wartezeiten zwischen Anfragen einbauen
+  → Caching von identischen Anfragen
+
+
+================================================================================
+
+ANHANG C: BEFEHLE FÜR DEN USER
+
+================================================================================
+
+Über Telegram kann Elias folgende Befehle an Hans senden:
+
+PROJEKT-MANAGEMENT:
+  "Bau mir ein Spiel wie [Beschreibung]"
+    → Startet neues Projekt
+
+  "Projektstand"
+    → Zeigt aktuelle Phase und Status
+
+  "Pause" / "Stopp"
+    → Pausiert die Entwicklung
+
+  "Weitermachen" / "Weiter"
+    → Setzt die Entwicklung fort
+
+  "Zeige mir den Code von [Datei]"
+    → Hans liest und sendet die Datei
+
+FEHLER-MANAGEMENT:
+  "/skip"
+    → Überspringe die aktuelle Phase
+
+  "/reset-phase"
+    → Starte die aktuelle Phase komplett neu
+
+  "/manual"
+    → User übernimmt die aktuelle Phase selbst
+
+FEEDBACK:
+  "[1-5] Sterne"
+    → Bewertung des fertigen Spiels
+
+  "Das [Feature] funktioniert nicht"
+    → Hans startet Fehlerkorrektur für spezifisches Feature
+
+KONFIGURATION:
+  "Nutze [Modell] für die nächste Phase"
+    → Ändert das Copilot-Modell
+
+  "Autonomer Modus an/aus"
+    → Aktiviert/deaktiviert den Auto-Modus
+
+
+================================================================================
+
+ANHANG D: GESCHÄTZTER ZEITPLAN FÜR DIE IMPLEMENTIERUNG
+
+================================================================================
+
+PHASE I: SETUP
+  Schritt 1: ~15 Minuten (Scripts erstellen + ausführen)
+  Schritt 2: ~10 Minuten (Konfiguration anpassen)
+  Schritt 3: ~20 Minuten (Prompt-Vorlagen + API-Test)
+  Schritt 4: ~30 Minuten (Copilot-Anbindung recherchieren + testen)
+  ─────────────────────────
+  Summe: ~1-1.5 Stunden
+
+PHASE II: SKILL-BAU
+  Schritt 5:  ~30 Minuten (Hauptskill + Ordnerstruktur)
+  Schritt 6:  ~20 Minuten (Project Initializer)
+  Schritt 7:  ~25 Minuten (Prompt Architect)
+  Schritt 8:  ~45 Minuten (VS Code Bridge - komplex!)
+  Schritt 9:  ~20 Minuten (Unity Watcher)
+  Schritt 10: ~20 Minuten (Error Handler)
+  Schritt 11: ~20 Minuten (Phase Manager)
+  ─────────────────────────
+  Summe: ~3-4 Stunden
+
+PHASE III: PIPELINE
+  Schritt 12: ~30 Minuten (Master Orchestrator)
+  Schritt 13: ~20 Minuten (Planungsphase)
+  Schritt 14: ~30 Minuten (Ausführungsschleife)
+  Schritt 15: ~20 Minuten (Fehler-Korrektur)
+  Schritt 16: ~20 Minuten (Kontext-Management)
+  ─────────────────────────
+  Summe: ~2-3 Stunden
+
+PHASE IV: UNITY
+  Schritt 17: ~30 Minuten (Templates)
+  Schritt 18: ~20 Minuten (Editor Scripts)
+  Schritt 19: ~15 Minuten (Build Pipeline)
+  ─────────────────────────
+  Summe: ~1-1.5 Stunden
+
+PHASE V: TEST
+  Schritt 20: ~30 Minuten (Testframework)
+  Schritt 21: ~60 Minuten (Erster echter Testlauf)
+  ─────────────────────────
+  Summe: ~1.5-2 Stunden
+
+PHASE VI: OPTIMIERUNG
+  Schritt 22: ~20 Minuten (Modell-Routing)
+  Schritt 23: ~20 Minuten (Memory-System)
+  Schritt 24: ~15 Minuten (Feedback)
+  ─────────────────────────
+  Summe: ~1-1.5 Stunden
+
+═══════════════════════════════════
+GESAMT: ~10-13 Stunden
+═══════════════════════════════════
+
+Aber: Da Sonnet den Großteil der Arbeit übernimmt und Elias selbst
+wenig machen muss, ist die tatsächliche "Hands-on"-Zeit für Elias
+deutlich geringer. Geschätzt:
+  Elias' aktive Zeit: ~2-3 Stunden (Setup + Überwachung + Tests)
+  Sonnet's Arbeitszeit: ~7-10 Stunden (Code-Generierung + Debugging)
+
+
+================================================================================
+
+ENDE DES PLANS
+
+================================================================================
+
+Dieses Dokument beschreibt den vollständigen Implementierungsplan für
+ein autonomes Spielprogrammierungssystem, das auf drei KI-Agenten basiert:
+
+1. Hans (OpenClaw/Gizmo) - Der Orchestrator
+2. Günther (Ollama Cloud/Kimi K2.5) - Der Architekt
+3. VS Code Copilot (Claude Sonnet 4.6) - Der Programmierer
+
+Das System ermöglicht es, mit einem einfachen Textbefehl wie
+"Bau mir ein Spiel wie The Long Drive mit Katzen" ein vollständiges
+Unity-Spiel autonom erstellen zu lassen.
+
+Erstellt für: Elias
+Erstellt von: Claude Sonnet 4.6 (VS Code Copilot)
+Datum: 10. April 2026
+Version: 1.0
+
+================================================================================
