@@ -1,0 +1,101 @@
+{
+  "gameName": "",
+  "gameDescription": "",
+  "genre": "",
+  "totalPhases": 10,
+  "createdAt": null,
+  "createdBy": "guenther",
+  "status": "planning",
+  "phases": [
+    {
+      "id": 1,
+      "name": "",
+      "description": "",
+      "copilotPrompt": "",
+      "expectedFiles": [],
+      "validationCriteria": [],
+      "dependencies": []
+    },
+    {
+      "id": 2,
+      "name": "",
+      "description": "",
+      "copilotPrompt": "",
+      "expectedFiles": [],
+      "validationCriteria": [],
+      "dependencies": []
+    },
+    {
+      "id": 3,
+      "name": "",
+      "description": "",
+      "copilotPrompt": "",
+      "expectedFiles": [],
+      "validationCriteria": [],
+      "dependencies": []
+    },
+    {
+      "id": 4,
+      "name": "",
+      "description": "",
+      "copilotPrompt": "",
+      "expectedFiles": [],
+      "validationCriteria": [],
+      "dependencies": []
+    },
+    {
+      "id": 5,
+      "name": "",
+      "description": "",
+      "copilotPrompt": "",
+      "expectedFiles": [],
+      "validationCriteria": [],
+      "dependencies": []
+    },
+    {
+      "id": 6,
+      "name": "",
+      "description": "",
+      "copilotPrompt": "",
+      "expectedFiles": [],
+      "validationCriteria": [],
+      "dependencies": []
+    },
+    {
+      "id": 7,
+      "name": "",
+      "description": "",
+      "copilotPrompt": "",
+      "expectedFiles": [],
+      "validationCriteria": [],
+      "dependencies": []
+    },
+    {
+      "id": 8,
+      "name": "",
+      "description": "",
+      "copilotPrompt": "",
+      "expectedFiles": [],
+      "validationCriteria": [],
+      "dependencies": []
+    },
+    {
+      "id": 9,
+      "name": "",
+      "description": "",
+      "copilotPrompt": "",
+      "expectedFiles": [],
+      "validationCriteria": [],
+      "dependencies": []
+    },
+    {
+      "id": 10,
+      "name": "",
+      "description": "",
+      "copilotPrompt": "",
+      "expectedFiles": [],
+      "validationCriteria": [],
+      "dependencies": []
+    }
+  ]
+}

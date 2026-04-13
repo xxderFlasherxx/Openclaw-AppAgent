@@ -1,0 +1,15 @@
+{
+  "projectName": "",
+  "startedAt": null,
+  "patterns": [],
+  "modelPreferences": {},
+  "timingData": {
+    "avgGuentherResponseTime": null,
+    "avgCopilotGenerationTime": null,
+    "avgCompileTime": null,
+    "avgPhaseTime": null,
+    "fastestPhase": null,
+    "slowestPhase": null
+  },
+  "promptQuality": []
+}

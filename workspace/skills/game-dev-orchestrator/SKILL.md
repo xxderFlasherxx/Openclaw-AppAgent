@@ -159,12 +159,124 @@ Verwaltet den 10-Phasen-Fortschritt:
   - Fehler: "🔧 Phase 3/10: Fehler gefunden, korrigiere..."
   - Hilfe nötig: "🆘 Phase 3/10: Brauche deine Hilfe..."
 
+## Die Autonome Pipeline (Teil D)
+
+Die Pipeline ist das Herzstück des Systems. Sie verbindet alle Sub-Skills
+zu einer durchgängigen, selbststeuernden Zustandsmaschine.
+
+### Zustandsmaschine (State Machine)
+
+Detailliert in: `pipeline/master-orchestrator.md`
+
+**Zustände:**
+```
+WAITING → ANALYZING → PLANNING → INITIALIZING → EXECUTING
+→ VERIFYING → (CORRECTING ↔ VERIFYING) → PHASE_DONE
+→ NEXT_PHASE → EXECUTING ... → BUILDING → COMPLETE
+```
+
+**Zustands-Übergänge:**
+| Von           | Nach         | Trigger                         |
+|---------------|--------------|----------------------------------|
+| WAITING       | ANALYZING    | User sendet Spielwunsch          |
+| ANALYZING     | PLANNING     | Genre erkannt                    |
+| PLANNING      | INITIALIZING | 10-Phasen-Plan validiert         |
+| INITIALIZING  | EXECUTING    | Projekt erstellt, VS Code offen  |
+| EXECUTING     | VERIFYING    | Copilot hat Code geschrieben     |
+| VERIFYING     | PHASE_DONE   | Unity: "success"                 |
+| VERIFYING     | CORRECTING   | Unity: "error"/"runtime-error"   |
+| CORRECTING    | VERIFYING    | Korrektur angewendet             |
+| PHASE_DONE    | NEXT_PHASE   | Phase < 10                       |
+| PHASE_DONE    | BUILDING     | Phase == 10                      |
+| BUILDING      | COMPLETE     | Build erfolgreich                |
+
+**Recovery bei Unterbrechung:**
+Hans kann bei Neustart den letzten Zustand aus `orchestrator-state.json` laden
+und am letzten bekannten Punkt fortsetzen.
+
+### Genre-Erkennung & Planungsphase
+
+Detailliert in: `pipeline/planning-phase.md`
+
+**Genre-Erkennung:**
+- Keyword-basiert (deutsch + englisch) mit Score-System
+- Referenz-Spiele als starke Indikatoren (3x Gewicht)
+- Fallback: Günther als Genre-Experte befragen
+- Unterstützte Genres: driving-game, platformer, rpg, sandbox
+
+**Planungs-Workflow:**
+1. Genre erkennen → Genre-Kontext laden
+2. Günther System-Prompt + Genre-Kontext + User-Wunsch senden
+3. 10-Phasen-Plan als JSON empfangen
+4. Plan validieren (10 Phasen, alle Pflichtfelder, logische Abhängigkeiten)
+5. User informieren (Phasen-Übersicht per Telegram)
+6. Auf Bestätigung warten (wenn `autoStart = false`)
+
+### Ausführungsschleife (Execution Loop)
+
+Detailliert in: `pipeline/execution-loop.md`
+
+**Pro Phase:**
+1. Kontext sammeln (Project Scanner)
+2. Günther nach finalisiertem Phase-Prompt fragen
+3. Copilot-Modell wählen (Haiku/Sonnet/Opus)
+4. Prompt-Header in Zieldatei(en) schreiben
+5. Smart Wait: Auf Dateiänderung warten
+6. Code bereinigen (Markdown-Blöcke, Duplikate, Klammern)
+7. Unity-Status prüfen → VERIFYING
+8. Bei Erfolg: Phase archivieren, Git Commit, weiter
+9. Bei Fehler: Error-Correction-Loop
+
+**Timing pro Phase:** ~2-3 min (Ideal), ~5-10 min (mit Fehlern)
+**Timing Gesamtprojekt:** ~25-45 min (realistisch)
+
+### Fehler-Korrektur-System
+
+Detailliert in: `pipeline/error-correction.md`
+
+**5-Stufen Retry-Strategie:**
+1. Gleicher Prompt, gleiches Modell (Sonnet)
+2. Erweiterter Prompt mit Günther-Analyse (Sonnet)
+3. Modell-Upgrade (→ Opus) + Fehlerhistorie
+4. Vereinfachter Ansatz (Günther schlägt simplere Lösung vor)
+5. Minimaler Stub (Haiku) + User-Einbeziehung
+
+**Fehler-Klassifizierung:**
+- CRITICAL: Kompilierungsfehler (CS0246, CS1061, etc.)
+- MAJOR: Runtime-Fehler (NullRef, MissingComponent, IndexOutOfRange)
+- MINOR: Warnungen (werden nur geloggt, nicht behoben)
+
+**Incident Report:** Nach 5 Fehlversuchen → User per Telegram benachrichtigen
+mit Optionen: /skip, /reset-phase, /manual, oder konkreter Hinweis.
+
+### Kontext-Management
+
+Detailliert in: `pipeline/context-management.md`
+
+**Project Scanner:** Analysiert alle C#-Scripts, Szenen, Prefabs, Materials
+- Extrahiert Klassen, Public Methods, Properties, Dependencies
+- Baut Dependency Graph
+
+**Context Compressor (nach Phase):**
+- Phase 1-3: FULL → Alle Dateien komplett
+- Phase 4-6: RELEVANT → Relevante komplett, Rest Summary
+- Phase 7-9: FOCUSED → Nur aktuelle Datei + Interface-Summaries
+- Phase 10: MINIMAL → Nur Build-Konfiguration
+
+**Memory Writer:**
+- Speichert Learnings pro Phase (Fehler → Fix → Erkenntnis)
+- Tracking von Modell-Preferences (welches Modell für welche Aufgabe)
+- Timing-Daten (für zukünftige Schätzungen)
+- Prompt-Qualitätsbewertung (gut/mittel/schlecht)
+- Globale Learnings nach Projektabschluss aktualisieren
+
 ## Fehlerbehandlung
 
-- Max 5 Korrektur-Versuche pro Phase
-- Nach 5 Fehlschlägen: User benachrichtigen und um Input bitten
-- Fehler werden in error-log.json protokolliert
+- Max 5 Korrektur-Versuche pro Phase (konfigurierbar)
+- 5-Stufen Eskalation: Simple Retry → Analyse → Modell-Upgrade → Vereinfachung → User
+- Fehler werden in `.plan/error-log.json` protokolliert (mit Severity, Kategorie, Resolution)
 - Günther analysiert Fehler und formuliert Korrektur-Prompts
+- Learnings werden gespeichert um gleiche Fehler zukünftig zu vermeiden
 
 ## Sicherheit
 
@@ -172,14 +284,38 @@ Verwaltet den 10-Phasen-Fortschritt:
 - Nur im vorgesehenen Projektordner arbeiten
 - Unity Build nur lokal, kein Upload
 - Alle Aktionen werden geloggt
+- Recovery bei Unterbrechung (kein Datenverlust)
+
+## User-Befehle (während Pipeline)
+
+| Befehl         | Aktion                                    |
+|----------------|-------------------------------------------|
+| "Pause"        | Pipeline anhalten, State speichern        |
+| "Weiter"       | Pipeline an letzter Stelle fortsetzen     |
+| "Stopp"        | Pipeline komplett abbrechen               |
+| "Projektstand" | Aktuelle Phase, Status, Statistiken       |
+| "/skip"        | Aktuelle Phase überspringen               |
+| "/reset-phase" | Aktuelle Phase komplett neu starten       |
+| "/manual"      | User übernimmt aktuelle Phase             |
+| "Code zeigen"  | Aktuellen Code der Phase senden           |
 
 ## Referenz-Dateien
 
+### Prompts
 - `prompts/architect-system.txt` → System-Prompt für Günther
 - `prompts/error-analysis.txt` → Error-Analyse-Prompt
 - `prompts/phase-transition.txt` → Phase-Übergangs-Prompt
 - `prompts/copilot-system-prompt.txt` → Copilot-Injection-Format
-- `prompts/game-genres/*.txt` → Genre-spezifische Kontexte
+- `prompts/game-genres/*.txt` → Genre-spezifische Kontexte (driving, platformer, rpg, sandbox)
+
+### Pipeline (Teil D)
+- `pipeline/master-orchestrator.md` → Komplette Zustandsmaschine + Pseudocode
+- `pipeline/planning-phase.md` → Genre-Erkennung + Planungs-Workflow
+- `pipeline/execution-loop.md` → Ausführungsschleife + Smart Wait + Code-Bereinigung
+- `pipeline/error-correction.md` → 5-Stufen Fehlerkorrektur + Klassifizierung
+- `pipeline/context-management.md` → Project Scanner + Kompression + Memory
+
+### Referenzen
 - `references/ollama-api.txt` → API-Dokumentation
 - `references/vscode-cli.txt` → VS Code CLI Referenz
 - `references/copilot-modes.txt` → Copilot-Steuerungsmethoden
@@ -188,4 +324,23 @@ Verwaltet den 10-Phasen-Fortschritt:
 - `references/unity-project-structure.txt` → Unity-Ordnerstruktur
 - `references/csharp-patterns.txt` → C#-Patterns für Unity
 - `references/common-unity-errors.txt` → Häufige Unity-Fehler
-- `templates/*` → Template-Dateien für neue Projekte
+
+### Templates (für `.plan/` Ordner)
+- `templates/orchestrator-state.json` → Initiale Zustandsmaschine
+- `templates/current-phase.json` → Initiale aktuelle Phase
+- `templates/phase-history.json` → Initiale Phase-Historie
+- `templates/error-log.json` → Initiales Error-Log
+- `templates/master-plan.json` → Leerer Master-Plan (10 Phasen)
+- `templates/learnings.json` → Initiale Learnings
+- `templates/copilot-prompts.json` → Initiales Prompt-Log
+- `templates/unity-status.json` → Initialer Unity-Status
+- `templates/unity-gitignore.txt` → .gitignore Template
+- `templates/unity-editorconfig.txt` → .editorconfig Template
+- `templates/base-game-manager.cs.txt` → GameManager Template
+- `templates/base-player-controller.cs.txt` → PlayerController Template
+- `templates/AutoCompileWatcher.cs.txt` → Unity Compile Watcher
+
+### Test-Daten (Dry-Run)
+- `test-data/mock-master-plan.json` → Mock 3-Phasen-Plan (JumpingCube)
+- `test-data/mock-unity-status.json` → Mock Unity-Status Szenarien
+- `test-data/mock-guenther-responses.json` → Mock Günther-Antworten

@@ -1,0 +1,61 @@
+{
+  "scenarios": {
+    "plan_request_success": {
+      "description": "Günther erstellt erfolgreich einen 3-Phasen-Plan (Dry-Run)",
+      "request": {
+        "model": "qwen3-coder-next:cloud",
+        "messages": [
+          {"role": "system", "content": "[architect-system.txt]"},
+          {"role": "user", "content": "NEUES SPIELPROJEKT\nWunsch: Erstelle einen roten Würfel der springt\nGenre: platformer"}
+        ]
+      },
+      "response": {
+        "choices": [
+          {
+            "message": {
+              "content": "{\"gameName\":\"JumpingCube\",\"gameDescription\":\"Ein roter Würfel der springt\",\"totalPhases\":3,\"phases\":[{\"id\":1,\"name\":\"Projektstruktur\",\"copilotPrompt\":\"Erstelle GameManager.cs...\",\"expectedFiles\":[\"Assets/Scripts/Core/GameManager.cs\"],\"validationCriteria\":[\"Datei existiert\"],\"dependencies\":[]},{\"id\":2,\"name\":\"Würfel-Controller\",\"copilotPrompt\":\"Erstelle CubeController.cs...\",\"expectedFiles\":[\"Assets/Scripts/Player/CubeController.cs\"],\"validationCriteria\":[\"Datei existiert\"],\"dependencies\":[\"Projektstruktur\"]},{\"id\":3,\"name\":\"Score und Build\",\"copilotPrompt\":\"Erstelle ScoreManager.cs...\",\"expectedFiles\":[\"Assets/Scripts/Core/ScoreManager.cs\"],\"validationCriteria\":[\"Datei existiert\"],\"dependencies\":[\"Würfel-Controller\"]}]}"
+            }
+          }
+        ]
+      }
+    },
+    "error_analysis_success": {
+      "description": "Günther analysiert einen Fehler erfolgreich",
+      "request": {
+        "model": "qwen3-coder-next:cloud",
+        "messages": [
+          {"role": "system", "content": "[error-analysis.txt]"},
+          {"role": "user", "content": "Fehler: CS0246 in CubeController.cs"}
+        ]
+      },
+      "response": {
+        "choices": [
+          {
+            "message": {
+              "content": "{\"errorType\":\"compilation\",\"rootCause\":\"Using-Statement für den Namespace fehlt\",\"correctionPrompt\":\"Füge das fehlende using-Statement hinzu und stelle sicher dass alle Abhängigkeiten korrekt referenziert sind.\",\"affectedFile\":\"Assets/Scripts/Player/CubeController.cs\",\"severity\":\"critical\"}"
+            }
+          }
+        ]
+      }
+    },
+    "genre_detection_success": {
+      "description": "Günther erkennt das Genre",
+      "request": {
+        "model": "qwen3-coder-next:cloud",
+        "messages": [
+          {"role": "system", "content": "Du bist ein Game-Genre-Experte."},
+          {"role": "user", "content": "Spielwunsch: Ein Spiel wo man Katzen steuert die über Plattformen hüpfen"}
+        ]
+      },
+      "response": {
+        "choices": [
+          {
+            "message": {
+              "content": "{\"genre\":\"platformer\",\"confidence\":0.95,\"reason\":\"Plattformen und Hüpfen sind klare Indikatoren für einen Platformer.\"}"
+            }
+          }
+        ]
+      }
+    }
+  }
+}

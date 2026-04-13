@@ -1,0 +1,65 @@
+{
+  "gameName": "JumpingCube",
+  "gameDescription": "Ein einfaches Testspiel: Ein roter Würfel auf einer grünen Fläche. Leertaste zum Springen. Score zählt jeden Sprung.",
+  "genre": "platformer",
+  "totalPhases": 3,
+  "createdAt": "2026-04-13T10:00:00Z",
+  "createdBy": "mock-data",
+  "status": "ready",
+  "phases": [
+    {
+      "id": 1,
+      "name": "Projektstruktur und Basis-Szene",
+      "description": "Erstelle die grundlegende Projektstruktur mit einer Szene die einen Boden und Beleuchtung enthält.",
+      "copilotPrompt": "Erstelle ein Unity C# Script 'GameManager.cs' als Singleton. Es soll den Spielzustand verwalten (isGameRunning, isPaused). Implementiere PauseGame(), ResumeGame() und QuitGame() Methoden. Nutze DontDestroyOnLoad. Schreibe vollständigen, kompilierbaren C#-Code für Unity 2022.3 LTS.",
+      "expectedFiles": [
+        "Assets/Scripts/Core/GameManager.cs"
+      ],
+      "validationCriteria": [
+        "GameManager.cs existiert",
+        "Klasse GameManager ist vorhanden",
+        "Singleton-Pattern implementiert",
+        "Unity kompiliert fehlerfrei"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": 2,
+      "name": "Würfel-Controller mit Sprungmechanik",
+      "description": "Erstelle den Spieler-Controller für den Würfel mit Sprungfähigkeit über die Leertaste.",
+      "copilotPrompt": "Erstelle ein Unity C# Script 'CubeController.cs'. Der Controller soll:\n- Einen Rigidbody verwenden\n- Bei Leertaste einen Sprung auslösen (AddForce mit ForceMode.Impulse)\n- Prüfen ob der Würfel am Boden ist (Raycast nach unten)\n- Eine öffentliche jumpForce Variable haben (Standard: 7f)\n- Das GameManager Singleton nutzen um zu prüfen ob das Spiel läuft\nSchreibe vollständigen, kompilierbaren C#-Code für Unity 2022.3 LTS.",
+      "expectedFiles": [
+        "Assets/Scripts/Player/CubeController.cs"
+      ],
+      "validationCriteria": [
+        "CubeController.cs existiert",
+        "Sprung-Mechanik implementiert",
+        "Ground-Check vorhanden",
+        "Unity kompiliert fehlerfrei"
+      ],
+      "dependencies": [
+        "Projektstruktur und Basis-Szene"
+      ]
+    },
+    {
+      "id": 3,
+      "name": "Score-System und Build",
+      "description": "Implementiere ein Score-System das bei jedem Sprung hochzählt und eine einfache UI-Anzeige.",
+      "copilotPrompt": "Erstelle zwei Unity C# Scripts:\n1. 'ScoreManager.cs': Singleton der den Score verwaltet. AddScore(int points) erhöht den Score. OnScoreChanged Event für UI-Updates. ResetScore() Methode.\n2. 'ScoreUI.cs': Canvas-basierte Score-Anzeige oben links. Nutzt TextMeshPro. Abonniert ScoreManager.OnScoreChanged.\nSchreibe vollständigen, kompilierbaren C#-Code für Unity 2022.3 LTS.",
+      "expectedFiles": [
+        "Assets/Scripts/Core/ScoreManager.cs",
+        "Assets/Scripts/UI/ScoreUI.cs"
+      ],
+      "validationCriteria": [
+        "ScoreManager.cs existiert",
+        "ScoreUI.cs existiert",
+        "Event-System verbunden",
+        "Unity kompiliert fehlerfrei"
+      ],
+      "dependencies": [
+        "Projektstruktur und Basis-Szene",
+        "Würfel-Controller mit Sprungmechanik"
+      ]
+    }
+  ]
+}

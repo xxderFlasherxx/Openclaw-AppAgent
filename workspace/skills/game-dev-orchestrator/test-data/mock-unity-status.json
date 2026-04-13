@@ -1,0 +1,84 @@
+{
+  "scenarios": {
+    "success": {
+      "status": "success",
+      "message": "Kompilierung erfolgreich. Keine Fehler.",
+      "timestamp": "2026-04-13T10:05:00Z"
+    },
+    "compiling": {
+      "status": "compiling",
+      "message": "Kompilierung gestartet...",
+      "timestamp": "2026-04-13T10:04:55Z"
+    },
+    "idle": {
+      "status": "idle",
+      "message": "Unity Editor bereit.",
+      "timestamp": "2026-04-13T10:00:00Z"
+    },
+    "error_cs0246": {
+      "status": "error",
+      "message": "Assets/Scripts/Player/CubeController.cs(5,7): error CS0246: The type or namespace name 'GameManager' could not be found (are you missing a using directive or an assembly reference?)",
+      "timestamp": "2026-04-13T10:06:00Z"
+    },
+    "error_nullref": {
+      "status": "runtime-error",
+      "message": "NullReferenceException: Object reference not set to an instance of an object\n  at CubeController.Update () [0x00012] in Assets/Scripts/Player/CubeController.cs:28",
+      "timestamp": "2026-04-13T10:07:00Z"
+    },
+    "error_missing_component": {
+      "status": "runtime-error",
+      "message": "MissingComponentException: There is no 'Rigidbody' attached to the 'Player' game object, but a script is trying to access it.",
+      "timestamp": "2026-04-13T10:08:00Z"
+    },
+    "build_success": {
+      "status": "success",
+      "message": "Build erfolgreich. Größe: 45MB.",
+      "size": "45MB",
+      "timestamp": "2026-04-13T10:20:00Z"
+    },
+    "build_failed": {
+      "status": "failed",
+      "message": "Build fehlgeschlagen: 2 Fehler in der Kompilierung.",
+      "errors": 2,
+      "timestamp": "2026-04-13T10:21:00Z"
+    }
+  },
+  "sequence_happy_path": [
+    "idle",
+    "compiling",
+    "success",
+    "compiling",
+    "success",
+    "compiling",
+    "success",
+    "build_success"
+  ],
+  "sequence_single_error": [
+    "idle",
+    "compiling",
+    "success",
+    "compiling",
+    "error_cs0246",
+    "compiling",
+    "success",
+    "compiling",
+    "success",
+    "build_success"
+  ],
+  "sequence_multiple_errors": [
+    "idle",
+    "compiling",
+    "success",
+    "compiling",
+    "error_cs0246",
+    "compiling",
+    "error_nullref",
+    "compiling",
+    "error_missing_component",
+    "compiling",
+    "success",
+    "compiling",
+    "success",
+    "build_success"
+  ]
+}

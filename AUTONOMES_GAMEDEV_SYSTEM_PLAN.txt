@@ -31,7 +31,7 @@ INHALTSVERZEICHNIS
     - Schritt 10: Sub-Skill "error-handler" erstellen
     - Schritt 11: Sub-Skill "phase-manager" erstellen
 
-  TEIL D: DIE AUTONOME PIPELINE
+  > TEIL D: DIE AUTONOME PIPELINE
     - Schritt 12: Den Master-Orchestrator bauen
     - Schritt 13: Die Planungsphase implementieren
     - Schritt 14: Die Ausführungsschleife implementieren

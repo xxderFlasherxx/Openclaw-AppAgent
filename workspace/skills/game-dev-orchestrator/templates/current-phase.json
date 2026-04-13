@@ -1,0 +1,16 @@
+{
+  "project": "",
+  "currentPhaseId": 0,
+  "currentPhaseName": "",
+  "status": "not_started",
+  "attempt": 0,
+  "maxAttempts": 5,
+  "startedAt": null,
+  "lastUpdate": null,
+  "copilotModel": "",
+  "promptSent": "",
+  "filesCreated": [],
+  "filesModified": [],
+  "errorsEncountered": 0,
+  "notes": ""
+}

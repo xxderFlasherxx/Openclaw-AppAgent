@@ -1,0 +1,18 @@
+{
+  "state": "WAITING",
+  "project": null,
+  "currentPhase": 0,
+  "totalPhases": 10,
+  "startedAt": null,
+  "lastUpdate": null,
+  "lastTransition": null,
+  "nextAction": null,
+  "totalErrors": 0,
+  "totalRetries": 0,
+  "phasesCompleted": 0,
+  "phasesSkipped": 0,
+  "estimatedCompletion": null,
+  "isPaused": false,
+  "pausedAt": null,
+  "recoveredFrom": null
+}
