@@ -115,7 +115,7 @@ API-Aufruf an Günther:
 ```
 POST https://ollama.com/v1/chat/completions
 Headers: Authorization: Bearer [API_KEY], Content-Type: application/json
-Body: { "model": "kimi-k2.5", "messages": [...], "temperature": 0.3,
+Body: { "model": "qwen3-coder-next:cloud", "messages": [...], "temperature": 0.3,
         "response_format": {"type": "json_object"} }
 ```
 

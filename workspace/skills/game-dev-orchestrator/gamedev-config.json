@@ -13,14 +13,14 @@
     "batchModeFlags": "-batchmode -nographics -quit"
   },
   "models": {
-    "architect": "kimi-k2.5-ollama",
+    "architect": "qwen3-coder-next",
     "coderDefault": "claude-sonnet-4.6",
     "coderComplex": "claude-opus",
     "coderQuick": "claude-haiku"
   },
   "ollamaCloud": {
     "baseUrl": "https://ollama.com/v1",
-    "model": "kimi-k2.5",
+    "model": "qwen3-coder-next:cloud",
     "temperature": 0.3,
     "maxTokens": 8192
   },

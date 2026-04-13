@@ -13,7 +13,7 @@ Headers:
   Content-Type: application/json
 Body:
   {
-    "model": "kimi-k2.5",
+    "model": "qwen3-coder-next:cloud",
     "messages": [
       {"role": "system", "content": "[System Prompt]"},
       {"role": "user", "content": "[User Prompt]"}
@@ -26,7 +26,7 @@ WICHTIG: response_format: json_object erzwingt JSON-Ausgabe
 WICHTIG: temperature 0.3 für konsistente, technische Antworten
 
 Verfügbare Modelle:
-- kimi-k2.5 (Standard, 200k Kontext, kostenlos)
+- qwen3-coder-next:cloud (Standard, 256k Kontext, coding-optimiert, non-thinking)
 
 Fehlerbehandlung:
 - HTTP 200: Erfolg → Antwort in choices[0].message.content

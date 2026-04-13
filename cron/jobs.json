@@ -21,7 +21,7 @@
         "message": "SYSTEM: heartbeat",
         "timeoutSeconds": 120,
         "lightContext": true,
-        "model": "kimi-k2.5-nvidia"
+        "model": "qwen3-coder-next"
       },
       "delivery": {
         "mode": "none",

@@ -48,6 +48,7 @@ Add whatever helps you do your job. This is your cheat sheet.
 - Copilot-Modell für Code: Claude Sonnet 4.6
 - Copilot-Modell für komplexe Logik: Claude Opus
 - Copilot-Modell für Quick-Fixes: Claude Haiku
-- Architekt-Modell (Günther): kimi-k2.5 via Ollama Cloud
+- Standard-Modell OpenClaw: qwen3-coder-next via Ollama Cloud
+- Architekt-Modell (Günther): qwen3-coder-next via Ollama Cloud
 - Config: workspace/skills/game-dev-orchestrator/gamedev-config.json
 - Skill: game-dev-orchestrator
