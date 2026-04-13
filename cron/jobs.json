@@ -8,7 +8,7 @@
       "description": "Periodic heartbeat - silent background tasks",
       "enabled": true,
       "createdAtMs": 1773778710953,
-      "updatedAtMs": 1774791636330,
+      "updatedAtMs": 1776100974787,
       "schedule": {
         "kind": "every",
         "everyMs": 1800000,
@@ -28,15 +28,14 @@
         "channel": "last"
       },
       "state": {
-        "nextRunAtMs": 1774792943547,
-        "lastRunAtMs": 1774791143547,
-        "lastRunStatus": "error",
-        "lastStatus": "error",
-        "lastDurationMs": 120033,
-        "lastDeliveryStatus": "not-requested",
-        "consecutiveErrors": 5,
-        "lastErrorReason": "timeout",
-        "lastError": "Error: cron: job execution timed out"
+        "nextRunAtMs": 1776102746552,
+        "lastRunAtMs": 1776100946552,
+        "lastRunStatus": "ok",
+        "lastStatus": "ok",
+        "lastDurationMs": 28235,
+        "lastDeliveryStatus": "not-delivered",
+        "consecutiveErrors": 0,
+        "lastDelivered": false
       }
     }
   ]

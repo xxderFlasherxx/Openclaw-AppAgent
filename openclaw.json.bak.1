@@ -1,42 +1,19 @@
 {
   "meta": {
     "lastTouchedVersion": "2026.3.13",
-    "lastTouchedAt": "2026-03-16T22:23:42.330Z"
+    "lastTouchedAt": "2026-03-17T20:52:53.440Z"
   },
   "models": {
     "mode": "merge",
     "providers": {
-      "nvidia": {
-        "baseUrl": "https://integrate.api.nvidia.com/v1",
-        "apiKey": "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",
-        "api": "openai-completions",
-        "models": [
-          {
-            "id": "moonshotai/kimi-k2.5",
-            "name": "kimi-k2.5",
-            "reasoning": false,
-            "input": [
-              "text"
-            ],
-            "cost": {
-              "input": 0,
-              "output": 0,
-              "cacheRead": 0,
-              "cacheWrite": 0
-            },
-            "contextWindow": 200000,
-            "maxTokens": 8192
-          }
-        ]
-      },
       "ollama_cloud": {
         "baseUrl": "https://ollama.com/v1",
-        "apiKey": "4c18dad4048c4e52b84b9c613e63101b.dnsdNPbmk60VlY5pkTzqheY4",
+        "apiKey": "4b0becde77ba494788c85e7624763417.vV--bf9Xb2X9FcIf_VhjNLqD",
         "api": "openai-completions",
         "models": [
           {
-            "id": "kimi-k2.5",
-            "name": "kimi-k2.5-ollama",
+            "id": "qwen3-coder-next:cloud",
+            "name": "qwen3-coder-next",
             "reasoning": false,
             "input": [
               "text"
@@ -47,7 +24,7 @@
               "cacheRead": 0,
               "cacheWrite": 0
             },
-            "contextWindow": 200000,
+            "contextWindow": 256000,
             "maxTokens": 8192
           }
         ]
@@ -57,23 +34,24 @@
   "agents": {
     "defaults": {
       "model": {
-        "primary": "kimi-k2.5-ollama"
+        "primary": "qwen3-coder-next"
       },
       "models": {
-        "nvidia/moonshotai/kimi-k2.5": {
-          "alias": "kimi-k2.5-nvidia"
-        },
-        "ollama_cloud/kimi-k2.5": {
-          "alias": "kimi-k2.5-ollama"
+        "ollama_cloud/qwen3-coder-next:cloud": {
+          "alias": "qwen3-coder-next"
         }
       },
-      "workspace": "/home/vboxuser/workspace"
+      "workspace": "/home/vboxuser/workspace",
+      "heartbeat": {
+        "every": "10m",
+        "target": "last"
+      }
     },
     "list": [
       {
         "id": "main",
         "tools": {
-          "profile": "full",
+          "profile": "coding",
           "alsoAllow": [
             "browser",
             "canvas",
@@ -119,8 +97,8 @@
       "groupPolicy": "open",
       "streaming": "off",
       "heartbeat": {
-        "showAlerts": true,
         "showOk": true,
+        "showAlerts": true,
         "useIndicator": true
       }
     }

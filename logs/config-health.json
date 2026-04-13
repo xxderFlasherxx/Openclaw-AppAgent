@@ -2,19 +2,19 @@
   "entries": {
     "/home/vboxuser/.openclaw/openclaw.json": {
       "lastKnownGood": {
-        "hash": "9ea50e2c728225dd2ce2a5f013c135e8f175fe4c527edcf75176537e99542374",
-        "bytes": 3198,
-        "mtimeMs": 1773780773440.736,
-        "ctimeMs": 1773780773441.6907,
+        "hash": "55854bf10816a53ee59eb96f13ec5a086dc678f6fc4b718e80353bc5d2aa5410",
+        "bytes": 2644,
+        "mtimeMs": 1776099963446.1873,
+        "ctimeMs": 1776099963446.1873,
         "dev": "2050",
-        "ino": "786480",
+        "ino": "786501",
         "mode": 384,
         "nlink": 1,
         "uid": 1000,
         "gid": 1000,
         "hasMeta": true,
         "gatewayMode": "local",
-        "observedAt": "2026-03-29T13:37:10.988Z"
+        "observedAt": "2026-04-13T17:06:04.226Z"
       },
       "lastObservedSuspiciousSignature": null
     }

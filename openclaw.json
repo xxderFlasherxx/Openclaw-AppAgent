@@ -1,7 +1,7 @@
 {
   "meta": {
-    "lastTouchedVersion": "2026.3.13",
-    "lastTouchedAt": "2026-03-17T20:52:53.440Z"
+    "lastTouchedVersion": "2026.4.12",
+    "lastTouchedAt": "2026-04-13T16:38:41.789Z"
   },
   "models": {
     "mode": "merge",
@@ -43,7 +43,7 @@
       },
       "workspace": "/home/vboxuser/workspace",
       "heartbeat": {
-        "every": "10m",
+        "every": "30m",
         "target": "last"
       }
     },
@@ -95,7 +95,9 @@
       "dmPolicy": "pairing",
       "botToken": "8727972825:AAEPzAbWrKDewQxAeqKgUvEVTOea0Zz_gUo",
       "groupPolicy": "open",
-      "streaming": "off",
+      "streaming": {
+        "mode": "off"
+      },
       "heartbeat": {
         "showOk": true,
         "showAlerts": true,
@@ -109,7 +111,14 @@
     "bind": "loopback",
     "auth": {
       "mode": "none",
-      "token": ""
+      "token": "9fc9f3ef85c6ba7533c1203ffbb5cb7df4d67a97d56e0f0f"
+    }
+  },
+  "plugins": {
+    "entries": {
+      "browser": {
+        "enabled": true
+      }
     }
   }
 }
