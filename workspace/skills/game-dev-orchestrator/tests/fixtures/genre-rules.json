@@ -1,0 +1,32 @@
+{
+  "rules": [
+    {
+      "genre": "driving-game",
+      "genreFile": "prompts/game-genres/driving-game.txt",
+      "keywords_de": ["fahren", "auto", "wagen", "straße", "drive", "rennspiel", "rennen", "motor", "lkw", "truck", "bus", "taxi", "lieferung", "transport", "geschwindigkeit", "treibstoff", "benzin", "tank"],
+      "keywords_en": ["drive", "driving", "car", "vehicle", "race", "racing", "road", "truck", "bus", "speed", "fuel"],
+      "referenceGames": ["the long drive", "my summer car", "jalopy", "euro truck", "need for speed", "forza"]
+    },
+    {
+      "genre": "platformer",
+      "genreFile": "prompts/game-genres/platformer.txt",
+      "keywords_de": ["springen", "plattform", "hüpfen", "2d", "seitlich", "level", "münzen", "gegner", "boss", "leben", "checkpoint"],
+      "keywords_en": ["jump", "platform", "2d", "side-scroller", "coins", "enemies", "boss", "lives", "checkpoint"],
+      "referenceGames": ["mario", "celeste", "hollow knight", "super meat boy", "rayman", "sonic", "megaman"]
+    },
+    {
+      "genre": "rpg",
+      "genreFile": "prompts/game-genres/rpg.txt",
+      "keywords_de": ["rpg", "quest", "level-up", "charakter", "erfahrungspunkte", "xp", "inventar", "dialog", "kampf", "magie", "zauber", "schwert", "rüstung", "dungeon", "rolle"],
+      "keywords_en": ["rpg", "quest", "level-up", "character", "xp", "inventory", "dialogue", "combat", "magic", "sword", "armor", "dungeon", "role-playing"],
+      "referenceGames": ["zelda", "pokemon", "stardew valley", "skyrim", "final fantasy", "diablo", "dark souls", "undertale"]
+    },
+    {
+      "genre": "sandbox",
+      "genreFile": "prompts/game-genres/sandbox.txt",
+      "keywords_de": ["sandbox", "open world", "bauen", "crafting", "block", "überleben", "survival", "ressourcen", "voxel", "frei", "erkunden", "hunger", "welt"],
+      "keywords_en": ["sandbox", "open world", "build", "crafting", "block", "survival", "resources", "voxel", "explore", "hunger", "world"],
+      "referenceGames": ["minecraft", "terraria", "raft", "subnautica", "valheim", "rust", "7 days to die", "ark"]
+    }
+  ]
+}

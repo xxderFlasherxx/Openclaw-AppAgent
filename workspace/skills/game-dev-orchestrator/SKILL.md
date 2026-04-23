@@ -398,3 +398,54 @@ Detailliert in: `pipeline/context-management.md`
 - `test-data/mock-master-plan.json` → Mock 3-Phasen-Plan (JumpingCube)
 - `test-data/mock-unity-status.json` → Mock Unity-Status Szenarien
 - `test-data/mock-guenther-responses.json` → Mock Günther-Antworten
+
+### Tests (Teil F – Schritt 20 & 21)
+- `tests/run-tests.sh` → Haupt-Runner (200+ automatische Checks, `--online` für Ollama-Ping)
+- `tests/simulate-dry-run.sh` → Dry-Run-Simulator pro Szenario (`MOCK_PLAN=...` für 10-Phasen-Plan)
+- `tests/test-genre-detection.sh` → Unit-Test für Keyword-basierte Genre-Erkennung
+- `tests/lib/assertions.sh` → Assertion-Helper (Bash)
+- `tests/test-scenarios.md` → 5 Testszenarien dokumentiert
+- `tests/e2e-jumping-cube.md` → End-to-End Runbook für JumpingCube
+- `tests/KNOWN-ISSUES.md` → Bekannte Abweichungen vom Plan & Design-Entscheidungen
+- `tests/fixtures/` → Genre-Rules, Genre-Cases, Unity-Status-Schema
+- `tests/README.md` → Kurzanleitung
+
+**Verwendung:**
+```bash
+bash workspace/skills/game-dev-orchestrator/tests/run-tests.sh           # offline
+bash workspace/skills/game-dev-orchestrator/tests/run-tests.sh --online  # +API-Ping
+```
+
+Die Tests decken ab (28 Suiten):
+- Skill-Grundstruktur, Pipeline-Dokumente, Prompts, Templates
+- JSON-Validität aller Config/Mock/Template-Dateien
+- `gamedev-config.json`-Schema (Pflichtfelder)
+- Mock-Master-Plans (3- und 10-Phasen-Varianten)
+- Unity-Status-Sequenzen + JSON-Schema-Contract
+- Günther-Mock-Antworten (JSON-in-JSON)
+- 4 Dry-Run-Szenarien: happy_path, single_error, multiple_errors, max_retries
+- Genre-Erkennung (16 eindeutige + 2 mehrdeutige Ground-Truth-Cases)
+- Template-Content-Smoke-Tests (verhindert versehentlich leere Dateien)
+- Deprecated-Kennzeichnung (`InventorySystem.cs.txt`)
+- dryRun-Sanity-Check (warnt vor Prod mit dryRun=true)
+- VS-Code/Copilot-Umgebung (nicht-blockierend)
+- Workspace-Integration (AGENTS/SOUL/USER/TOOLS/IDENTITY, openclaw.json-Tools)
+- Bash-Syntax aller Shell-Scripts
+- Opt-in: Ollama-Cloud-Erreichbarkeit (`--online`)
+
+**Dry-Run-Modus aktivieren** (über `gamedev-config.json`):
+```json
+{ "dryRun": true }
+```
+Wenn `dryRun = true`, werden im echten Orchestrator statt Günther, VS Code
+und Unity die Mocks aus `test-data/` verwendet. Der Test-Runner warnt,
+wenn `dryRun=true` in der Config steht (Sanity-Check gegen vergessene
+Test-Flags im Produktionseinsatz).
+
+**Bekannte Abweichungen vom Plan** (siehe `tests/KNOWN-ISSUES.md`):
+- Pfad: `gamedev-config.json` nutzt Linux-Pfad `/home/vboxuser/GameDev-Projekte`,
+  Plan war für macOS geschrieben. Config ist Single Source of Truth.
+- Modell: Config nutzt `qwen3-coder-next:cloud`, Plan erwähnt `kimi-k2.5`.
+  Beide via Ollama Cloud erreichbar.
+- Orchestrator ist **skill-basiert** (Hans interpretiert Markdown-Specs zur
+  Laufzeit), nicht als eigenständiger Code-Prozess implementiert.

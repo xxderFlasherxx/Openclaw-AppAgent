@@ -91,13 +91,28 @@ public class AutoCompileWatcher
             + "\"timestamp\":\"" + System.DateTime.Now.ToString("o") + "\""
             + "}";
 
+        // Atomar schreiben: erst in .tmp, dann umbenennen, damit Hans niemals
+        // eine halb-geschriebene Datei liest (Race-Condition, Schwachstelle #12).
         try
         {
-            File.WriteAllText(statusFile, json);
+            string tmp = statusFile + ".tmp";
+            File.WriteAllText(tmp, json);
+            if (File.Exists(statusFile))
+            {
+                // File.Replace ist auf allen .NET-Plattformen atomic,
+                // File.Move überschreibt ab .NET Core 3.0 mit overwrite: true.
+                File.Replace(tmp, statusFile, null);
+            }
+            else
+            {
+                File.Move(tmp, statusFile);
+            }
         }
         catch (System.Exception e)
         {
             Debug.LogWarning($"[AutoCompileWatcher] Konnte Status nicht schreiben: {e.Message}");
+            // Fallback: direkter Write (besser als gar kein Status)
+            try { File.WriteAllText(statusFile, json); } catch { /* ignore */ }
         }
     }
 

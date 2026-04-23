@@ -43,7 +43,7 @@ INHALTSVERZEICHNIS
     - Schritt 18: Unity Editor-Skripte für Automation
     - Schritt 19: Unity Build-Pipeline automatisieren
 
-  TEIL F: QUALITÄTSSICHERUNG UND TESTS
+  > TEIL F: QUALITÄTSSICHERUNG UND TESTS
     - Schritt 20: Testframework für den Orchestrator
     - Schritt 21: End-to-End Testlauf mit Beispiel-Game
 

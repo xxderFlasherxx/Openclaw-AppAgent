@@ -1,0 +1,101 @@
+{
+  "gameName": "JumpingCubePlus",
+  "gameDescription": "Vollständiger 10-Phasen-Mock-Plan für Skalierungstests. Erweiterte Version von JumpingCube mit UI, Sound, Menüs und Build.",
+  "genre": "platformer",
+  "totalPhases": 10,
+  "createdAt": "2026-04-23T10:00:00Z",
+  "createdBy": "mock-data-10phases",
+  "status": "ready",
+  "phases": [
+    {
+      "id": 1,
+      "name": "Projektstruktur und Basis-Szene",
+      "description": "Grundlegende Ordner und GameManager.",
+      "copilotPrompt": "Erstelle GameManager.cs als Singleton. Verwalte isGameRunning, isPaused. Unity 2022.3 LTS.",
+      "expectedFiles": ["Assets/Scripts/Core/GameManager.cs"],
+      "validationCriteria": ["GameManager existiert", "Singleton-Pattern"],
+      "dependencies": []
+    },
+    {
+      "id": 2,
+      "name": "Würfel-Controller",
+      "description": "Springender Würfel mit Rigidbody und Ground-Check.",
+      "copilotPrompt": "Erstelle CubeController.cs. Rigidbody, AddForce.Impulse bei Leertaste, Raycast-Ground-Check, jumpForce=7f.",
+      "expectedFiles": ["Assets/Scripts/Player/CubeController.cs"],
+      "validationCriteria": ["Sprung-Mechanik", "Ground-Check"],
+      "dependencies": ["Projektstruktur und Basis-Szene"]
+    },
+    {
+      "id": 3,
+      "name": "Kamera-System",
+      "description": "Statische Kamera, die den Würfel verfolgt.",
+      "copilotPrompt": "Erstelle CameraRig.cs. Smooth-Follow mit Lerp, Offset konfigurierbar.",
+      "expectedFiles": ["Assets/Scripts/Camera/CameraRig.cs"],
+      "validationCriteria": ["Smooth-Follow funktioniert"],
+      "dependencies": ["Würfel-Controller"]
+    },
+    {
+      "id": 4,
+      "name": "Boden und Physik",
+      "description": "Plane, Collider, Material.",
+      "copilotPrompt": "Erstelle LevelBuilder.cs das einen Boden (10x10) mit BoxCollider und grünem Material generiert.",
+      "expectedFiles": ["Assets/Scripts/Environment/LevelBuilder.cs"],
+      "validationCriteria": ["Boden generiert", "Physik funktioniert"],
+      "dependencies": ["Würfel-Controller"]
+    },
+    {
+      "id": 5,
+      "name": "Score-System",
+      "description": "Zähler der bei jedem Sprung +1 gibt.",
+      "copilotPrompt": "Erstelle ScoreManager.cs als Singleton mit AddScore(int), OnScoreChanged Event und ResetScore().",
+      "expectedFiles": ["Assets/Scripts/Core/ScoreManager.cs"],
+      "validationCriteria": ["AddScore funktioniert", "Event vorhanden"],
+      "dependencies": ["Würfel-Controller"]
+    },
+    {
+      "id": 6,
+      "name": "UI und HUD",
+      "description": "TextMeshPro-Anzeige oben links.",
+      "copilotPrompt": "Erstelle ScoreUI.cs (TMP) das OnScoreChanged abonniert und 'Score: X' rendert.",
+      "expectedFiles": ["Assets/Scripts/UI/ScoreUI.cs"],
+      "validationCriteria": ["UI aktualisiert sich"],
+      "dependencies": ["Score-System"]
+    },
+    {
+      "id": 7,
+      "name": "Partikel-Effekte",
+      "description": "Partikel beim Springen.",
+      "copilotPrompt": "Erstelle JumpParticles.cs, spielt ParticleSystem auf OnJump-Event ab.",
+      "expectedFiles": ["Assets/Scripts/Effects/JumpParticles.cs"],
+      "validationCriteria": ["Partikel bei Jump"],
+      "dependencies": ["Würfel-Controller"]
+    },
+    {
+      "id": 8,
+      "name": "Sound-System",
+      "description": "Jump-Sound via AudioManager.",
+      "copilotPrompt": "Erstelle JumpSound.cs, nutzt AudioManager.Instance.PlaySFX('jump').",
+      "expectedFiles": ["Assets/Scripts/Audio/JumpSound.cs"],
+      "validationCriteria": ["Sound wird abgespielt"],
+      "dependencies": ["Würfel-Controller"]
+    },
+    {
+      "id": 9,
+      "name": "Main-Menu",
+      "description": "Startbildschirm mit Play-Button.",
+      "copilotPrompt": "Erstelle MenuController.cs. Start- und Quit-Button, lädt GameScene via SceneLoader.",
+      "expectedFiles": ["Assets/Scripts/UI/MenuController.cs"],
+      "validationCriteria": ["Start-Button funktioniert"],
+      "dependencies": ["UI und HUD"]
+    },
+    {
+      "id": 10,
+      "name": "Build und Finalisierung",
+      "description": "Standalone-Build erstellen.",
+      "copilotPrompt": "Nutze AutoBuilder.Build um StandaloneLinux64-Build nach Builds/ zu erstellen.",
+      "expectedFiles": ["Builds/JumpingCubePlus.x86_64"],
+      "validationCriteria": ["Build existiert", "Keine Fehler"],
+      "dependencies": ["Main-Menu", "Sound-System", "Partikel-Effekte"]
+    }
+  ]
+}

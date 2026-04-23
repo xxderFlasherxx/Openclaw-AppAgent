@@ -80,5 +80,22 @@
     "compiling",
     "success",
     "build_success"
+  ],
+  "sequence_max_retries": [
+    "idle",
+    "compiling",
+    "success",
+    "compiling",
+    "error_cs0246",
+    "compiling",
+    "error_cs0246",
+    "compiling",
+    "error_nullref",
+    "compiling",
+    "error_nullref",
+    "compiling",
+    "error_missing_component",
+    "compiling",
+    "error_missing_component"
   ]
 }

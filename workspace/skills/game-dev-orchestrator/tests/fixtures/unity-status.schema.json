@@ -1,0 +1,18 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "UnityStatusFile",
+  "description": "Contract zwischen AutoCompileWatcher.cs und dem Orchestrator. Die Datei .plan/unity-status.json MUSS dieses Schema erfüllen, damit die VERIFYING-Phase zuverlässig funktioniert.",
+  "type": "object",
+  "required": ["status", "message", "timestamp"],
+  "additionalProperties": true,
+  "properties": {
+    "status": {
+      "type": "string",
+      "enum": ["idle", "compiling", "success", "error", "runtime-error", "failed"]
+    },
+    "message": { "type": "string" },
+    "timestamp": { "type": "string", "minLength": 1 },
+    "size":   { "type": ["string", "number", "null"] },
+    "errors": { "type": ["integer", "null"] }
+  }
+}

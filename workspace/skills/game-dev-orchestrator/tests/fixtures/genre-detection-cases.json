@@ -1,0 +1,28 @@
+{
+  "description": "Ground-Truth-Tabelle für die Keyword-basierte Genre-Erkennung. Basiert auf pipeline/planning-phase.md.",
+  "cases": [
+    { "prompt": "Bau mir ein Spiel wie The Long Drive mit Katzen",                                "expected": "driving-game" },
+    { "prompt": "Ich will ein Rennspiel mit Autos auf einer Straße",                              "expected": "driving-game" },
+    { "prompt": "Truck-Simulator mit Treibstoff-System",                                          "expected": "driving-game" },
+    { "prompt": "Something like Forza but with buses",                                             "expected": "driving-game" },
+
+    { "prompt": "Erstelle einen 2D Platformer im Stil von Celeste",                               "expected": "platformer" },
+    { "prompt": "Ein Spiel wo man über Plattformen springt und Münzen sammelt",                   "expected": "platformer" },
+    { "prompt": "A side-scroller with jumping and enemies",                                        "expected": "platformer" },
+    { "prompt": "Hollow Knight style game with bosses and checkpoints",                            "expected": "platformer" },
+
+    { "prompt": "Ein RPG mit Quests, Inventar und Dialogen",                                       "expected": "rpg" },
+    { "prompt": "Zelda-ähnliches Abenteuer mit Schwertkampf",                                      "expected": "rpg" },
+    { "prompt": "A role-playing game with magic and dungeons",                                     "expected": "rpg" },
+    { "prompt": "Pokemon-like game with character progression",                                    "expected": "rpg" },
+
+    { "prompt": "Ein Sandbox-Spiel wie Minecraft mit Crafting",                                    "expected": "sandbox" },
+    { "prompt": "Open-World Survival mit Hunger und Ressourcen",                                   "expected": "sandbox" },
+    { "prompt": "Voxel-basiertes Bausystem zum Erkunden",                                          "expected": "sandbox" },
+    { "prompt": "Terraria-like game with block placement",                                         "expected": "sandbox" }
+  ],
+  "ambiguous": [
+    { "prompt": "Ich will ein Spiel bauen",                                                        "expected_fallback": true },
+    { "prompt": "Make a game",                                                                     "expected_fallback": true }
+  ]
+}
