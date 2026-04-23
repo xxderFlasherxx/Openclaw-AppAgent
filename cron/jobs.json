@@ -8,7 +8,7 @@
       "description": "Periodic heartbeat - silent background tasks",
       "enabled": true,
       "createdAtMs": 1773778710953,
-      "updatedAtMs": 1776931925290,
+      "updatedAtMs": 1776933724656,
       "schedule": {
         "kind": "every",
         "everyMs": 1800000,
@@ -28,11 +28,11 @@
         "channel": "last"
       },
       "state": {
-        "nextRunAtMs": 1776933719250,
-        "lastRunAtMs": 1776931919250,
+        "nextRunAtMs": 1776935519256,
+        "lastRunAtMs": 1776933719256,
         "lastRunStatus": "ok",
         "lastStatus": "ok",
-        "lastDurationMs": 6040,
+        "lastDurationMs": 5400,
         "lastDeliveryStatus": "not-delivered",
         "consecutiveErrors": 0,
         "lastDelivered": false

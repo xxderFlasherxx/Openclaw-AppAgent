@@ -493,10 +493,193 @@ else
 fi
 
 # =============================================================================
+suite "28. Teil G – Schritt 22: Modell-Routing"
+# =============================================================================
+assert_file_exists "$SKILL_DIR/pipeline/model-routing.md"                 "pipeline/model-routing.md"
+assert_file_exists "$SKILL_DIR/templates/model-usage.json"                "templates/model-usage.json"
+assert_file_exists "$SCRIPT_DIR/fixtures/model-routing-cases.json"        "fixtures/model-routing-cases.json"
+assert_file_exists "$SCRIPT_DIR/test-model-routing.sh"                    "test-model-routing.sh"
+assert_json_valid  "$SKILL_DIR/templates/model-usage.json"                "model-usage.json valide JSON"
+assert_json_valid  "$SCRIPT_DIR/fixtures/model-routing-cases.json"        "model-routing-cases.json valide JSON"
+# Config-Schema
+assert_jq          "$CFG" '.modelRouting.enabled'                 "true"  "modelRouting.enabled=true"
+assert_jq_nonempty "$CFG" '.modelRouting.defaultModel'                    "modelRouting.defaultModel"
+assert_jq_nonempty "$CFG" '.modelRouting.escalateAtRetry'                 "modelRouting.escalateAtRetry"
+assert_jq_nonempty "$CFG" '.modelRouting.categoryMap.physics'             "categoryMap.physics"
+assert_jq_nonempty "$CFG" '.modelRouting.keywords.opus'                   "keywords.opus"
+assert_jq_nonempty "$CFG" '.modelRouting.pricing.haiku.inputPer1K'        "pricing.haiku.inputPer1K"
+assert_jq_nonempty "$CFG" '.modelRouting.pricing.sonnet.outputPer1K'      "pricing.sonnet.outputPer1K"
+assert_jq_nonempty "$CFG" '.modelRouting.pricing.opus.inputPer1K'         "pricing.opus.inputPer1K"
+# Preis-Sanity: Haiku < Sonnet < Opus (Input-Preis)
+h=$(jq -r '.modelRouting.pricing.haiku.inputPer1K'  "$CFG")
+s=$(jq -r '.modelRouting.pricing.sonnet.inputPer1K' "$CFG")
+o=$(jq -r '.modelRouting.pricing.opus.inputPer1K'   "$CFG")
+if awk "BEGIN{exit !($h < $s && $s < $o)}"; then
+  _log_pass "Pricing monoton (haiku<sonnet<opus): $h < $s < $o"
+else
+  _log_fail "Pricing monoton (haiku<sonnet<opus)" "h=$h s=$s o=$o"
+fi
+# model-usage.json Schema
+MU="$SKILL_DIR/templates/model-usage.json"
+for f in haiku sonnet opus; do
+  assert_jq_nonempty "$MU" ".models.${f}"            "model-usage.models.$f vorhanden"
+  assert_jq          "$MU" ".models.${f}.calls"  "0" "model-usage.$f.calls initial 0"
+done
+assert_jq          "$MU" '.totalCostUsd == 0' "true" "model-usage.totalCostUsd initial 0"
+# Routing-Unit-Test ausführen
+if [ -x "$SCRIPT_DIR/test-model-routing.sh" ]; then
+  if "$SCRIPT_DIR/test-model-routing.sh" > "$TMP_ROOT/routing.log" 2>&1; then
+    _log_pass "test-model-routing.sh läuft fehlerfrei durch"
+  else
+    _log_fail "test-model-routing.sh läuft fehlerfrei durch" "Siehe $TMP_ROOT/routing.log"
+  fi
+else
+  _log_fail "test-model-routing.sh ausführbar" "Skript fehlt oder nicht executable"
+fi
+
+# =============================================================================
+suite "29. Teil G – Schritt 23: Memory-System"
+# =============================================================================
+assert_file_exists "$SKILL_DIR/pipeline/memory-system.md"                       "pipeline/memory-system.md"
+assert_file_exists "$SKILL_DIR/templates/gamedev-projects.json"                 "templates/gamedev-projects.json"
+assert_file_exists "$SKILL_DIR/templates/gamedev-patterns.json"                 "templates/gamedev-patterns.json"
+assert_json_valid  "$SKILL_DIR/templates/gamedev-projects.json"                 "gamedev-projects.json template valide"
+assert_json_valid  "$SKILL_DIR/templates/gamedev-patterns.json"                 "gamedev-patterns.json template valide"
+
+WSMEM="/home/vboxuser/.openclaw/workspace/memory"
+assert_file_exists "$WSMEM/gamedev-projects.json"  "workspace/memory/gamedev-projects.json"
+assert_file_exists "$WSMEM/gamedev-patterns.json"  "workspace/memory/gamedev-patterns.json"
+assert_json_valid  "$WSMEM/gamedev-projects.json"  "gamedev-projects.json (workspace) valide"
+assert_json_valid  "$WSMEM/gamedev-patterns.json"  "gamedev-patterns.json (workspace) valide"
+
+# Projects-Schema
+assert_jq_nonempty "$WSMEM/gamedev-projects.json" '.schemaVersion'           "projects.schemaVersion"
+assert_jq          "$WSMEM/gamedev-projects.json" '.projects | type' 'array' "projects.projects Array"
+assert_jq_nonempty "$WSMEM/gamedev-projects.json" '.aggregate'               "projects.aggregate"
+assert_jq          "$WSMEM/gamedev-projects.json" '.aggregate.totalProjects' "0" "aggregate.totalProjects=0 initial"
+
+# Patterns-Schema
+assert_jq_nonempty "$WSMEM/gamedev-patterns.json" '.schemaVersion'           "patterns.schemaVersion"
+assert_jq_nonempty "$WSMEM/gamedev-patterns.json" '.patterns'                "patterns.patterns vorhanden"
+# Mindestens ein Pattern mit erwarteten Feldern
+pat_count=$(jq -r '.patterns | length' "$WSMEM/gamedev-patterns.json")
+if [ "$pat_count" -ge 1 ]; then
+  _log_pass "Pattern-Library hat Seed-Patterns ($pat_count)"
+else
+  _log_fail "Pattern-Library hat Seed-Patterns" "0 Patterns"
+fi
+# Jedes Pattern hat Pflichtfelder
+missing_pat=$(jq -r '[.patterns | to_entries[] | select((.value.category==null) or (.value.description==null) or (.value.prompt==null) or (.value.successRate==null) or (.value.timesUsed==null) or (.value.appliesToGenres==null))] | length' "$WSMEM/gamedev-patterns.json")
+assert_equals "$missing_pat" "0" "Alle Patterns haben Pflichtfelder"
+
+# Config-Schema Memory
+assert_jq          "$CFG" '.memory.enabled' "true"                "memory.enabled=true"
+assert_jq_nonempty "$CFG" '.memory.projectsFile'                  "memory.projectsFile"
+assert_jq_nonempty "$CFG" '.memory.patternsFile'                  "memory.patternsFile"
+assert_jq_nonempty "$CFG" '.memory.maxProjectsInMemory'           "memory.maxProjectsInMemory"
+
+# =============================================================================
+suite "30. Teil G – Schritt 24: User-Feedback"
+# =============================================================================
+assert_file_exists "$SKILL_DIR/pipeline/user-feedback.md"                    "pipeline/user-feedback.md"
+assert_file_exists "$SKILL_DIR/templates/feedback-prompt-hints.json"         "templates/feedback-prompt-hints.json"
+assert_json_valid  "$SKILL_DIR/templates/feedback-prompt-hints.json"         "feedback-prompt-hints.json valide"
+
+# Hints-Schema: Erwartete Kategorien
+HINTS="$SKILL_DIR/templates/feedback-prompt-hints.json"
+for cat in bugs missing performance controls graphics code; do
+  assert_jq_nonempty "$HINTS" ".hints.${cat}" "Hint-Kategorie '${cat}' vorhanden"
+done
+assert_jq_nonempty "$HINTS" '.maxHintsPerGenre'                              "maxHintsPerGenre gesetzt"
+
+# Config-Schema Feedback
+assert_jq          "$CFG" '.feedback.enabled'        "true"                  "feedback.enabled=true"
+assert_jq_nonempty "$CFG" '.feedback.timeoutHours'                           "feedback.timeoutHours"
+assert_jq_nonempty "$CFG" '.feedback.askDetailsBelowRating'                  "feedback.askDetailsBelowRating"
+assert_jq_nonempty "$CFG" '.feedback.askDetailsAboveRating'                  "feedback.askDetailsAboveRating"
+
+# SKILL.md erwähnt Teil G
+for tag in "Teil G" "Modell-Routing" "Memory-System" "User-Feedback"; do
+  if grep -q "$tag" "$SKILL_DIR/SKILL.md"; then
+    _log_pass "SKILL.md enthält '$tag'"
+  else
+    _log_fail "SKILL.md enthält '$tag'" "Abschnitt fehlt"
+  fi
+done
+
+# Bash-Syntax der neuen Test-Scripts
+for sh in "$SCRIPT_DIR/test-model-routing.sh"; do
+  if bash -n "$sh" 2>/dev/null; then
+    _log_pass "Bash-Syntax OK: ${sh##$SKILL_DIR/}"
+  else
+    _log_fail "Bash-Syntax OK: ${sh##$SKILL_DIR/}" "Syntaxfehler"
+  fi
+done
+
+# =============================================================================
+suite "30b. Teil G – Integrations-Fixes (Cross-Linking)"
+# =============================================================================
+# execution-loop.md muss selectModel() und usedPatterns aus Teil G referenzieren
+EXEC_LOOP="$SKILL_DIR/pipeline/execution-loop.md"
+for needle in "selectModel(phase" "model-routing.md" "detectUsedPatterns" \
+              "used-patterns.json" "logRoutingDecision"; do
+  if grep -q "$needle" "$EXEC_LOOP"; then
+    _log_pass "execution-loop.md referenziert '$needle'"
+  else
+    _log_fail "execution-loop.md referenziert '$needle'" "Cross-Link fehlt"
+  fi
+done
+
+# master-orchestrator.md muss die neuen Teil-G-States enthalten
+MO="$SKILL_DIR/pipeline/master-orchestrator.md"
+for state in "ARCHIVING" "AWAITING_FEEDBACK" "DONE"; do
+  if grep -q "$state" "$MO"; then
+    _log_pass "master-orchestrator.md kennt Zustand '$state'"
+  else
+    _log_fail "master-orchestrator.md kennt Zustand '$state'" "State fehlt"
+  fi
+done
+# State-Transition-Tabelle enthält die neuen Übergänge
+for trans in "COMPLETE.*ARCHIVING" "ARCHIVING.*AWAITING_FEEDBACK" "AWAITING_FEEDBACK.*DONE"; do
+  if grep -qE "$trans" "$MO"; then
+    _log_pass "Transition-Tabelle: $trans"
+  else
+    _log_fail "Transition-Tabelle: $trans" "fehlt"
+  fi
+done
+
+# Memory-Config muss absolute Pfade haben (beginnen mit '/')
+for key in projectsFile patternsFile archiveFile lockFile; do
+  val=$(jq -r ".memory.${key}" "$CFG")
+  if [[ "$val" == /* ]]; then
+    _log_pass "memory.${key} ist absoluter Pfad"
+  else
+    _log_fail "memory.${key} ist absoluter Pfad" "relativ: $val"
+  fi
+done
+
+# schemaVersion in Memory-Config
+assert_jq_nonempty "$CFG" '.memory.schemaVersion' "memory.schemaVersion gesetzt"
+
+# used-patterns Template existiert
+assert_file_exists "$SKILL_DIR/templates/used-patterns.json" "templates/used-patterns.json"
+assert_json_valid  "$SKILL_DIR/templates/used-patterns.json" "used-patterns.json valide"
+
+# Memory-Robustheit-Block in memory-system.md
+MS="$SKILL_DIR/pipeline/memory-system.md"
+for needle in "Lockfile" "schemaVersion" "Atomic Writes" "Size-Limit"; do
+  if grep -qE "$needle" "$MS"; then
+    _log_pass "memory-system.md dokumentiert: $needle"
+  else
+    _log_fail "memory-system.md dokumentiert: $needle" "fehlt"
+  fi
+done
+
+# =============================================================================
 # Opt-in: Online-Checks (nur mit --online)
 # =============================================================================
 if [ "$ONLINE" -eq 1 ]; then
-  suite "28. Online-Check: Ollama Cloud (Schwachstelle #7)"
+  suite "31. Online-Check: Ollama Cloud (Schwachstelle #7)"
   BASE=$(jq -r '.ollamaCloud.baseUrl' "$SKILL_DIR/gamedev-config.json")
   # Host-Erreichbarkeit
   host=$(echo "$BASE" | sed -E 's#^https?://##;s#/.*$##')

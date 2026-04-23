@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "projectName": "",
+  "startedAt": null,
+  "lastUpdate": null,
+  "models": {
+    "haiku": {
+      "calls": 0,
+      "promptTokens": 0,
+      "completionTokens": 0,
+      "costUsd": 0.0
+    },
+    "sonnet": {
+      "calls": 0,
+      "promptTokens": 0,
+      "completionTokens": 0,
+      "costUsd": 0.0
+    },
+    "opus": {
+      "calls": 0,
+      "promptTokens": 0,
+      "completionTokens": 0,
+      "costUsd": 0.0
+    }
+  },
+  "totalCalls": 0,
+  "totalTokens": 0,
+  "totalCostUsd": 0.0,
+  "perPhase": {},
+  "decisions": []
+}

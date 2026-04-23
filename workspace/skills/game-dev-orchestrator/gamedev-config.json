@@ -39,5 +39,76 @@
     "notifyOnPhaseComplete": true,
     "notifyOnError": true
   },
+  "modelRouting": {
+    "enabled": true,
+    "escalateAtRetry": 3,
+    "defaultModel": "sonnet",
+    "overrides": {
+      "1": "haiku",
+      "10": "haiku"
+    },
+    "categoryMap": {
+      "structure": "haiku",
+      "setup": "haiku",
+      "config": "haiku",
+      "template": "haiku",
+      "editor": "haiku",
+      "build": "haiku",
+      "ui": "sonnet",
+      "menu": "sonnet",
+      "gamelogic": "sonnet",
+      "physics": "opus",
+      "procedural": "opus",
+      "ai": "opus",
+      "shader": "opus",
+      "optimization": "opus"
+    },
+    "keywords": {
+      "haiku": [
+        "structure", "setup", "config", "template", "boilerplate",
+        "folder", "gitignore", "editorconfig", "asmdef",
+        "editor script", "editor window", "menu item",
+        "scene bootstrapper", "file creation", "readme"
+      ],
+      "sonnet": [
+        "ui", "hud", "menu", "settings", "options", "pause",
+        "inventory view", "input", "controller", "movement",
+        "camera follow", "audio manager", "score", "health",
+        "timer", "gamemanager", "dialogue", "save", "load"
+      ],
+      "opus": [
+        "physics", "rigidbody", "wheelcollider", "joint", "ragdoll",
+        "procedural", "noise", "perlin", "generation", "terrain",
+        "ai", "pathfinding", "navmesh", "behavior tree",
+        "shader", "material", "urp", "post processing",
+        "optimization", "multithread", "jobs", "burst",
+        "netcode", "networking", "multiplayer"
+      ]
+    },
+    "pricing": {
+      "haiku":  { "inputPer1K": 0.00025, "outputPer1K": 0.00125 },
+      "sonnet": { "inputPer1K": 0.003,   "outputPer1K": 0.015   },
+      "opus":   { "inputPer1K": 0.015,   "outputPer1K": 0.075   }
+    }
+  },
+  "memory": {
+    "enabled": true,
+    "projectsFile": "/home/vboxuser/.openclaw/workspace/memory/gamedev-projects.json",
+    "patternsFile": "/home/vboxuser/.openclaw/workspace/memory/gamedev-patterns.json",
+    "archiveFile":  "/home/vboxuser/.openclaw/workspace/memory/gamedev-projects-archive.json",
+    "lockFile":     "/home/vboxuser/.openclaw/workspace/memory/.memory.lock",
+    "maxProjectsInMemory": 100,
+    "minPatternSuccessRate": 0.3,
+    "patternUseThreshold": 2,
+    "schemaVersion": 1
+  },
+  "feedback": {
+    "enabled": true,
+    "timeoutHours": 24,
+    "askDetailsBelowRating": 3,
+    "askDetailsAboveRating": 4,
+    "saveFreeText": true,
+    "promptHintsFile": "templates/feedback-prompt-hints.json"
+  },
   "dryRun": false
 }

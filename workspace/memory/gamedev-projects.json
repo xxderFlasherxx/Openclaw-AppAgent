@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "projects": [],
+  "aggregate": {
+    "totalProjects": 0,
+    "successfulProjects": 0,
+    "ratedProjects": 0,
+    "avgQualityRating": null,
+    "avgDurationSeconds": 0,
+    "avgPhasesEscalated": 0,
+    "totalCostUsd": 0.0
+  },
+  "lastUpdate": null
+}

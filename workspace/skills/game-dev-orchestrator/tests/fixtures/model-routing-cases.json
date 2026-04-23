@@ -1,0 +1,112 @@
+{
+  "cases": [
+    {
+      "name": "Phase 1 Override → haiku",
+      "phaseId": "1",
+      "category": "structure",
+      "phaseName": "Projektstruktur",
+      "prompt": "Lege Ordner Assets/Scripts an",
+      "retryCount": 0,
+      "expected": "haiku"
+    },
+    {
+      "name": "Phase 10 Override → haiku (Build)",
+      "phaseId": "10",
+      "category": "build",
+      "phaseName": "Final Build",
+      "prompt": "Erstelle Windows-Build",
+      "retryCount": 0,
+      "expected": "haiku"
+    },
+    {
+      "name": "Retry 3 → Opus (Eskalation)",
+      "phaseId": "5",
+      "category": "gamelogic",
+      "phaseName": "Standard Logik",
+      "prompt": "Score-System",
+      "retryCount": 3,
+      "expected": "opus"
+    },
+    {
+      "name": "Physics-Kategorie → Opus",
+      "phaseId": "4",
+      "category": "physics",
+      "phaseName": "Auto-Physik",
+      "prompt": "Setze WheelCollider auf",
+      "retryCount": 0,
+      "expected": "opus"
+    },
+    {
+      "name": "UI-Kategorie → Sonnet",
+      "phaseId": "7",
+      "category": "ui",
+      "phaseName": "HUD",
+      "prompt": "Baue Tachometer und Lebensanzeige",
+      "retryCount": 0,
+      "expected": "sonnet"
+    },
+    {
+      "name": "Editor-Kategorie → Haiku",
+      "phaseId": "2",
+      "category": "editor",
+      "phaseName": "Editor Tools",
+      "prompt": "MenuItem fuer Szene-Bootstrapper",
+      "retryCount": 0,
+      "expected": "haiku"
+    },
+    {
+      "name": "Opus-Keywords im Prompt (noise+procedural) → Opus",
+      "phaseId": "6",
+      "category": "",
+      "phaseName": "Weltgenerierung",
+      "prompt": "Nutze Perlin Noise fuer procedural Terrain Generation",
+      "retryCount": 0,
+      "expected": "opus"
+    },
+    {
+      "name": "Sonnet-Keywords (ui + menu) ohne Kategorie → Sonnet",
+      "phaseId": "8",
+      "category": "",
+      "phaseName": "Haupt-Menu",
+      "prompt": "UI Menu mit Settings und Pause Button",
+      "retryCount": 0,
+      "expected": "sonnet"
+    },
+    {
+      "name": "Haiku-Keywords (config+readme) ohne Kategorie → Haiku",
+      "phaseId": "3",
+      "category": "",
+      "phaseName": "Basis-Setup",
+      "prompt": "Erstelle gitignore editorconfig und readme Datei",
+      "retryCount": 0,
+      "expected": "haiku"
+    },
+    {
+      "name": "Leerer Prompt, keine Kategorie → Default Sonnet",
+      "phaseId": "5",
+      "category": "",
+      "phaseName": "Irgendwas",
+      "prompt": "",
+      "retryCount": 0,
+      "expected": "sonnet"
+    },
+    {
+      "name": "Retry 2, Physics-Kategorie → Opus (via Kategorie, nicht Eskalation)",
+      "phaseId": "4",
+      "category": "physics",
+      "phaseName": "Bugfix Rigidbody",
+      "prompt": "Korrigiere Rigidbody-Mass",
+      "retryCount": 2,
+      "expected": "opus"
+    },
+    {
+      "name": "Shader-Keyword im Prompt → Opus",
+      "phaseId": "9",
+      "category": "",
+      "phaseName": "Optik",
+      "prompt": "Schreibe custom Shader fuer Wasser",
+      "retryCount": 0,
+      "expected": "opus"
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "hints": {
+    "bugs":        "Validierung und Null-Checks in jedem Controller. GetComponent-Resultate prüfen bevor sie genutzt werden.",
+    "missing":     "Alle Features aus dem User-Wunsch 1:1 abarbeiten, nichts weglassen. Am Anfang jeder Phase explizit erwähnen welches User-Feature abgedeckt wird.",
+    "performance": "Object-Pooling statt Instantiate/Destroy in Loops. FixedUpdate nur fuer Physik. Keine GetComponent() in Update(). String-Concat vermeiden.",
+    "controls":    "Intuitive Tastenbelegung (WASD + Maus, Space = Aktion). UI-Hinweis beim Spielstart. Rebinding-Option wenn moeglich.",
+    "graphics":    "URP mit Post-Processing (Bloom, Vignette). Konsistente Material-Naming-Convention. Keine magenta Missing-Shader.",
+    "code":        "Saubere Trennung (Player/GameManager/UI). Keine Monolithen > 400 Zeilen. XML-Doc-Kommentare bei Public-API.",
+    "features":    "Alle gewuenschten Features abdecken; wenn Zeit/Scope-Problem, lieber weniger Features aber voll funktionsfaehig.",
+    "mechanics":   "Spielmechaniken als einzelne Komponenten, lose gekoppelt ueber Events/UnityEvents."
+  },
+  "maxHintsPerGenre": 3,
+  "notes": "Wird durch Feedback-System befuellt. Kategorien sind die Werte aus feedback.categories. 'bugs'/'controls' = Negativ-Feedback-Hints."
+}

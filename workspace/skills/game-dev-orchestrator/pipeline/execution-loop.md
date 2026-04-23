@@ -48,11 +48,25 @@ FUNKTION: executePhase(phaseId, projectPath, masterPlan)
   // ── 3. Copilot-Prompt protokollieren ────────────────────────
   logCopilotPrompt(phaseId, copilotPrompt, contextFiles)
 
-  // ── 4. Modell-Auswahl ──────────────────────────────────────
-  model = selectCopilotModel(phase, attempt=1)
-  // Standard: Sonnet 4.6
-  // Physik/Prozedural/KI: Opus
-  // Boilerplate/Config: Haiku
+  // ── 4. Modell-Auswahl (Teil G, Schritt 22) ─────────────────
+  // Spezifiziert in: pipeline/model-routing.md
+  // Entscheidet auf Basis von:
+  //   a) config.modelRouting.overrides[phaseId]
+  //   b) retryCount >= config.modelRouting.escalateAtRetry → Opus
+  //   c) phase.category → config.modelRouting.categoryMap
+  //   d) Keyword-Scoring über phase.name + copilotPrompt
+  //   e) Fallback: config.modelRouting.defaultModel (sonnet)
+  model = selectModel(phase, currentPhase.retryCount)
+  logRoutingDecision(phaseId, model, decisionReason)   // in .plan/model-usage.json
+
+  // ── 4b. Pattern-Detection (Teil G, Schritt 23) ─────────────
+  // Extrahiere verwendete Patterns aus dem finalisierten Prompt.
+  // Ein "Pattern-Use" wird gezählt wenn der Prompt eines der
+  // Schlüsselwörter aus workspace/memory/gamedev-patterns.json
+  // (description oder prompt-Auszüge) referenziert.
+  usedPatterns = detectUsedPatterns(copilotPrompt)
+  appendUsedPatterns(projectPath, phaseId, usedPatterns)
+  // → .plan/used-patterns.json wird pro Phase ergänzt
 
   // ── 5. VS Code Bridge: Code generieren ─────────────────────
   FOR EACH targetFile IN (newFiles + modifiedFiles):
@@ -390,4 +404,62 @@ Datei: `.plan/copilot-prompts.json`
     }
   ]
 }
+```
+
+## Pattern-Detection (Teil G, Schritt 23)
+
+Während der Ausführung wird getrackt welche Library-Patterns verwendet
+wurden. Jedes Pattern in `gamedev-patterns.json` hat ein `keywords[]`-Feld
+mit kurzen, hochspezifischen Begriffen (z.B. `["cinemachine", "virtual camera"]`).
+
+```
+FUNKTION: detectUsedPatterns(copilotPrompt)
+
+  patternLib = readJSON(config.memory.patternsFile)
+  promptLc = copilotPrompt.toLowerCase()
+
+  used = []
+
+  FOR EACH key, pattern IN patternLib.patterns:
+    IF pattern.deprecated == true: CONTINUE
+
+    FOR EACH kw IN (pattern.keywords OR []):
+      IF promptLc.contains(kw.toLowerCase()):
+        used.push(key); BREAK
+      END IF
+    END FOR
+  END FOR
+
+  RETURN uniqueKeys(used)
+
+ENDE
+
+FUNKTION: appendUsedPatterns(projectPath, phaseId, usedKeys)
+
+  file = projectPath + "/.plan/used-patterns.json"
+  data = fileExists(file) ? readJSON(file) : { "phases": {}, "aggregate": [] }
+
+  data.phases[phaseId] = usedKeys
+  data.aggregate = unique(flatten(values(data.phases)))
+
+  writeJSON_atomic(file, data)   // .tmp + File.Replace
+```
+
+## Routing-Decision-Log (Teil G, Schritt 22)
+
+```
+FUNKTION: logRoutingDecision(phaseId, chosenModel, reason)
+
+  file = projectPath + "/.plan/model-usage.json"
+  usage = fileExists(file) ? readJSON(file)
+                           : readJSON("templates/model-usage.json")
+
+  usage.decisions.push({
+    "phaseId": phaseId,
+    "model": chosenModel,
+    "reason": reason,                 // "override"|"retry-escalation"|"category"|"keyword-score"|"default"
+    "timestamp": now()
+  })
+  usage.lastUpdate = now()
+  writeJSON_atomic(file, usage)
 ```

@@ -47,7 +47,7 @@ INHALTSVERZEICHNIS
     - Schritt 20: Testframework für den Orchestrator
     - Schritt 21: End-to-End Testlauf mit Beispiel-Game
 
-  TEIL G: ERWEITERUNGEN UND OPTIMIERUNGEN
+  > TEIL G: ERWEITERUNGEN UND OPTIMIERUNGEN
     - Schritt 22: Modell-Routing (Haiku vs Sonnet vs Opus)
     - Schritt 23: Mehrstufiges Memory-System
     - Schritt 24: User-Feedback-Integration

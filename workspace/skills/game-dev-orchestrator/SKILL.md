@@ -315,6 +315,11 @@ Detailliert in: `pipeline/context-management.md`
 - `pipeline/error-correction.md` → 5-Stufen Fehlerkorrektur + Klassifizierung
 - `pipeline/context-management.md` → Project Scanner + Kompression + Memory
 
+### Pipeline (Teil G – Erweiterungen)
+- `pipeline/model-routing.md` → Haiku/Sonnet/Opus-Routing + Kosten-Tracking
+- `pipeline/memory-system.md` → Drei-Ebenen-Memory + Pattern-Library
+- `pipeline/user-feedback.md` → Telegram-Rating-Flow + Prompt-Hints
+
 ### Referenzen
 - `references/ollama-api.txt` → API-Dokumentation
 - `references/vscode-cli.txt` → VS Code CLI Referenz
@@ -416,7 +421,7 @@ bash workspace/skills/game-dev-orchestrator/tests/run-tests.sh           # offli
 bash workspace/skills/game-dev-orchestrator/tests/run-tests.sh --online  # +API-Ping
 ```
 
-Die Tests decken ab (28 Suiten):
+Die Tests decken ab (31 Suiten inkl. Teil G):
 - Skill-Grundstruktur, Pipeline-Dokumente, Prompts, Templates
 - JSON-Validität aller Config/Mock/Template-Dateien
 - `gamedev-config.json`-Schema (Pflichtfelder)
@@ -449,3 +454,94 @@ Test-Flags im Produktionseinsatz).
   Beide via Ollama Cloud erreichbar.
 - Orchestrator ist **skill-basiert** (Hans interpretiert Markdown-Specs zur
   Laufzeit), nicht als eigenständiger Code-Prozess implementiert.
+
+## Erweiterungen & Optimierungen (Teil G)
+
+### 1. Modell-Routing (Schritt 22)
+
+Detailliert in: `pipeline/model-routing.md`
+
+Nicht jede Aufgabe braucht Opus. Das Routing wählt pro Phase automatisch
+das passende Copilot-Modell:
+- **Haiku**: Struktur, Config, Editor-Scripts, Build (billig + schnell)
+- **Sonnet 4.6**: UI, Standard-Gamelogik, einfache Bug-Fixes (Default)
+- **Opus**: Physik, Prozedural, AI, Shader, Retry ≥ 3 (Eskalation)
+
+Entscheidungs-Reihenfolge:
+1. Config-Override (`modelRouting.overrides[phaseId]`)
+2. Retry-Eskalation (`retryCount >= escalateAtRetry` → Opus)
+3. Phase-Kategorie (`phase.category` → `modelRouting.categoryMap`)
+4. Keyword-Scoring auf Name + Prompt
+5. Fallback: `defaultModel` (Sonnet)
+
+Modell-Nutzung wird pro Projekt in `.plan/model-usage.json` geloggt
+(Template: `templates/model-usage.json`). Kosten werden on-the-fly aus
+`modelRouting.pricing` berechnet.
+
+### 2. Mehrstufiges Memory-System (Schritt 23)
+
+Detailliert in: `pipeline/memory-system.md`
+
+Drei Ebenen:
+- **Kurzzeit** (Per-Phase): `.plan/learnings.json`, `error-log.json`
+- **Mittelfristig** (Per-Projekt): `workspace/memory/gamedev-projects.json`
+  — Archiv aller Projekte mit Dauer, Fehlern, Kosten, Rating
+- **Langfristig** (Cross-Project): `workspace/memory/gamedev-patterns.json`
+  — Pattern-Library mit `successRate` und `timesUsed`
+
+Nach jedem abgeschlossenen Projekt:
+1. `archiveProject()` → Eintrag in `gamedev-projects.json`
+2. `updatePattern(key, success)` für jeden genutzten Pattern
+3. Bei `projects.length > 100`: FIFO-Archivierung in
+   `gamedev-projects-archive.json`
+
+Bei neuem Projekt (Planning-Phase) wird Günthers Kontext um Top-Patterns
+und Recent-Learnings des gleichen Genres angereichert
+(`buildPlannerContext(genre)`).
+
+### 3. User-Feedback-Integration (Schritt 24)
+
+Detailliert in: `pipeline/user-feedback.md`
+
+Nach Fertigstellung fragt Hans via Telegram um Bewertung (1–5 Sterne).
+- Rating ≤ 3 → Detail-Follow-up ("Was war schlecht?")
+- Rating ≥ 4 → Detail-Follow-up ("Was war besonders gut?")
+- Timeout: 24h (konfigurierbar in `feedback.timeoutHours`)
+
+Feedback fließt zurück:
+- In `gamedev-projects.json` als `qualityRating` + `feedback`
+- In die Pattern-Library als Success/Failure pro genutztem Pattern
+- In zukünftige Günther-Prompts als Prompt-Hints
+  (`templates/feedback-prompt-hints.json`)
+- In Timing-Budgets: Rating ≤ 2 → `timeoutPerPhaseSeconds × 1.5`,
+  `maxRetriesPerPhase + 2` für nächstes gleiches Genre
+
+### Neue Pipeline-Dokumente (Teil G)
+
+- `pipeline/model-routing.md` → Routing-Algorithmus, Keyword-Tabellen,
+  Kostenberechnung
+- `pipeline/memory-system.md` → Drei Memory-Ebenen, Archivierung,
+  Pattern-Updates
+- `pipeline/user-feedback.md` → Telegram-Flow, Rating-Speicherung,
+  Prompt-Hint-Generierung
+
+### Neue Templates (Teil G)
+
+- `templates/model-usage.json` → Initialer Per-Projekt-Usage-Tracker
+- `templates/gamedev-projects.json` → Leere Project-Archive-Struktur
+- `templates/gamedev-patterns.json` → Pattern-Library-Seed (3 Einträge)
+- `templates/feedback-prompt-hints.json` → Mapping Feedback-Kategorie
+  → Prompt-Hinweis
+
+### Neue Memory-Dateien (Workspace)
+
+- `workspace/memory/gamedev-projects.json` → Produktives Projekt-Archiv
+- `workspace/memory/gamedev-patterns.json` → Produktive Pattern-Library
+
+### Erweiterte Config (`gamedev-config.json`)
+
+Drei neue Top-Level-Blöcke:
+- `modelRouting` — Routing-Regeln, Keywords, Pricing
+- `memory` — Datei-Pfade, FIFO-Limits, Pattern-Schwellen
+- `feedback` — Timeout, Rating-Schwellen, Hints-Pfad
+

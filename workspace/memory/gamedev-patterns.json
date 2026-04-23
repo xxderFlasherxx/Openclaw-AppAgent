@@ -1,0 +1,91 @@
+{
+  "schemaVersion": 1,
+  "patterns": {
+    "camera-follow-cinemachine": {
+      "category": "gamelogic",
+      "description": "Smooth-Follow Kamera via Cinemachine",
+      "prompt": "Nutze Cinemachine Virtual Camera mit Follow-Target. DeadZone 0.1, SoftZone 0.3, Damping 1.5. Package 'com.unity.cinemachine' muss installiert sein.",
+      "successRate": 1.0,
+      "timesUsed": 0,
+      "lastUsed": null,
+      "appliesToGenres": [
+        "platformer",
+        "driving-game",
+        "rpg",
+        "sandbox"
+      ],
+      "relatedFiles": [],
+      "knownPitfalls": [
+        "Ohne Cinemachine-Package gibt es CS0246-Fehler"
+      ],
+      "deprecated": false,
+      "keywords": [
+        "cinemachine",
+        "virtual camera",
+        "follow-target"
+      ]
+    },
+    "vehicle-physics-wheelcollider": {
+      "category": "physics",
+      "description": "Fahrzeug-Physik mit WheelColliders + Parent-Rigidbody",
+      "prompt": "Nutze 4x WheelCollider als Child eines Parent-GameObjects mit Rigidbody (Mass >= 1000). CenterOfMass nach unten verschoben (0, -0.5, 0). Suspension Distance 0.3, Spring 35000.",
+      "successRate": 1.0,
+      "timesUsed": 0,
+      "lastUsed": null,
+      "appliesToGenres": [
+        "driving-game"
+      ],
+      "relatedFiles": [
+        "VehicleController.cs"
+      ],
+      "knownPitfalls": [
+        "Ohne Parent-Rigidbody fällt Auto durch Boden",
+        "Center of Mass zu hoch → Auto kippt in Kurven"
+      ],
+      "deprecated": false,
+      "keywords": [
+        "wheelcollider",
+        "parent-rigidbody",
+        "centerofmass",
+        "suspension"
+      ]
+    },
+    "text-mesh-pro-over-legacy": {
+      "category": "ui",
+      "description": "TextMeshPro statt Legacy uGUI Text",
+      "prompt": "Verwende immer TMPro.TextMeshProUGUI statt UnityEngine.UI.Text. TMPro ist in Unity 2022+ standardmäßig dabei.",
+      "successRate": 1.0,
+      "timesUsed": 0,
+      "lastUsed": null,
+      "appliesToGenres": [
+        "platformer",
+        "driving-game",
+        "rpg",
+        "sandbox"
+      ],
+      "relatedFiles": [],
+      "knownPitfalls": [
+        "Legacy Text hat keine MSDF-Rendering, wird pixelig bei Skalierung"
+      ],
+      "deprecated": false,
+      "keywords": [
+        "textmeshpro",
+        "tmpro",
+        "textmeshproui"
+      ]
+    }
+  },
+  "categoryIndex": {
+    "gamelogic": [
+      "camera-follow-cinemachine"
+    ],
+    "physics": [
+      "vehicle-physics-wheelcollider"
+    ],
+    "ui": [
+      "text-mesh-pro-over-legacy"
+    ]
+  },
+  "suggested": [],
+  "lastUpdate": null
+}

@@ -80,6 +80,21 @@ END IF
    │          ▼
    │   ┌─────────────┐
    │   │  COMPLETE    │ ←── Spiel fertig!
+   │   └──────┬──────┘
+   │          │ (Teil G)
+   │          ▼
+   │   ┌─────────────┐
+   │   │  ARCHIVING   │ ←── Project → Memory, Patterns updaten
+   │   └──────┬──────┘
+   │          │
+   │          ▼
+   │   ┌───────────────────┐
+   │   │ AWAITING_FEEDBACK │ ←── Telegram-Rating
+   │   └──────┬────────────┘
+   │          │
+   │          ▼
+   │   ┌─────────────┐
+   │   │    DONE      │ ──→ zurück zu WAITING
    │   └─────────────┘
    │
    └──▶ (zurück zu EXECUTING mit nächster Phase)
@@ -239,8 +254,44 @@ END IF
      Dauer: [Zeit]
      Build: [Pfad]
      ```
-  6. Feedback anfordern (1-5 Sterne)
-  7. Learnings final speichern
+  6. Nächster Zustand: ARCHIVING (Teil G, Schritt 23)
+
+### ARCHIVING (Teil G, Schritt 23)
+- **Beschreibung**: Projekt in Cross-Project-Memory überführen
+- **Spezifiziert in**: `pipeline/memory-system.md`
+- **Aktionen**:
+  1. `archiveProject(state)` → Eintrag in
+     `workspace/memory/gamedev-projects.json`
+  2. Für jeden Key in `.plan/used-patterns.json`:
+     `updatePattern(key, success=allPhasesCompleted)`
+  3. Aggregate in gamedev-projects.json neu berechnen
+  4. Bei >`memory.maxProjectsInMemory`: FIFO-Archivierung
+     in `gamedev-projects-archive.json`
+- **Ausgangs-Bedingung**: Archivierung erfolgreich
+- **Nächster Zustand**: AWAITING_FEEDBACK (wenn feedback.enabled)
+                         sonst DONE
+
+### AWAITING_FEEDBACK (Teil G, Schritt 24)
+- **Beschreibung**: User wird via Telegram um Rating gebeten
+- **Spezifiziert in**: `pipeline/user-feedback.md`
+- **Aktionen**:
+  1. Telegram-Nachricht mit Statistik + 1–5-Rating-Abfrage
+  2. `pendingFeedback`-State in orchestrator-state.json setzen,
+     inkl. `timeoutAt = now() + feedback.timeoutHours * 3600`
+  3. Warten auf Rating / `/skip` / Timeout
+  4. Bei Rating ≤ `askDetailsBelowRating`: Detail-Follow-up "Was war schlecht?"
+  5. Bei Rating ≥ `askDetailsAboveRating`: Detail-Follow-up "Was war gut?"
+  6. `saveFeedback(projectName, rating, categories, freeText)`
+  7. Pattern-Penalty/Bonus je nach Rating anwenden
+- **Timeout-Verhalten**: `saveFeedback(..., rating=null, reason="timeout")`
+- **Nächster Zustand**: DONE
+
+### DONE
+- **Beschreibung**: Projekt vollständig abgeschlossen inkl. Memory-Updates
+- **Aktionen**:
+  1. `gamedev-state.json.currentProject = null`
+  2. `orchestrator-state.json.state = "DONE"`
+  3. Zurück zu WAITING
 - **End-Zustand**: Zurück zu WAITING
 
 ## Zustands-Übergänge (Transitions)
@@ -261,7 +312,11 @@ END IF
 | NEXT_PHASE    | EXECUTING      | Neuer Prompt bereit                  | Phase geladen          |
 | BUILDING      | COMPLETE       | Build erfolgreich                    | build-status: success  |
 | BUILDING      | CORRECTING     | Build fehlgeschlagen                 | build-status: failed   |
-| COMPLETE      | WAITING        | Spiel fertig                         | Immer                  |
+| COMPLETE      | ARCHIVING      | Projekt fertig                       | Immer (Teil G)         |
+| ARCHIVING     | AWAITING_FEEDBACK | Memory aktualisiert               | feedback.enabled=true  |
+| ARCHIVING     | DONE           | Memory aktualisiert                  | feedback.enabled=false |
+| AWAITING_FEEDBACK | DONE       | Rating empfangen oder Timeout        | user-input / 24h       |
+| DONE          | WAITING        | Projekt abgeschlossen                | Immer                  |
 
 ## Zustands-Datei
 
@@ -386,6 +441,22 @@ FUNKTION: runGameDevPipeline(userPrompt)
         state = "COMPLETE"
         finalizeProject(masterPlan, projectPath)
         notifyUser("Spiel fertig!", buildResult)
+
+        // ── Teil G: Archivierung & Feedback ──────────────────
+        state = "ARCHIVING"
+        archiveProject(masterPlan, projectPath)          // memory-system.md
+        usedPatterns = readJSON(projectPath + "/.plan/used-patterns.json").aggregate
+        FOR EACH key IN usedPatterns:
+          updatePattern(key, success=allPhasesCompleted())
+
+        IF config.feedback.enabled THEN
+          state = "AWAITING_FEEDBACK"
+          requestFeedbackViaTelegram(masterPlan, projectPath)   // user-feedback.md
+          waitForRatingOrTimeout(config.feedback.timeoutHours * 3600)
+        END IF
+
+        state = "DONE"
+        clearCurrentProject()
       ELSE
         // Build-Fehler → Korrektur-Schleife
         handleBuildError(buildResult)
@@ -394,7 +465,7 @@ FUNKTION: runGameDevPipeline(userPrompt)
 
   END FOR
 
-  RETURN "COMPLETE"
+  RETURN "DONE"
 
 END FUNKTION
 ```
