@@ -52,6 +52,21 @@ INHALTSVERZEICHNIS
     - Schritt 23: Mehrstufiges Memory-System
     - Schritt 24: User-Feedback-Integration
 
+  > TEIL H: COPILOT-BRIDGE (TATSÄCHLICHE AUSFÜHRUNG)
+    - Schritt 25: Prompt-Injection-Adapter (CLI / Datei / UI-Automation)
+    - Schritt 26: Code-Extraktion und Accept-Handling
+    - Schritt 27: Approval-Gates und Sicherheitsmodus
+
+  > TEIL I: UNITY-RUNTIME-WATCHER (TATSÄCHLICHE AUSFÜHRUNG)
+    - Schritt 28: AutoCompileWatcher im Projekt deployen
+    - Schritt 29: Batchmode-Kompilierung als Fallback
+    - Schritt 30: Fehler-Pipeline Unity -> Hans -> Günther
+
+  > TEIL J: AUTONOMER END-TO-END-LAUF
+    - Schritt 31: Telegram-Trigger und Run-Kommandos
+    - Schritt 32: Daemon-Loop und Zustandspersistenz
+    - Schritt 33: Notfall-Halt, Budget- und Zeitlimits
+
 ================================================================================
 
 TEIL A: PROJEKTÜBERSICHT UND ARCHITEKTUR
@@ -3163,6 +3178,605 @@ wenig machen muss, ist die tatsächliche "Hands-on"-Zeit für Elias
 deutlich geringer. Geschätzt:
   Elias' aktive Zeit: ~2-3 Stunden (Setup + Überwachung + Tests)
   Sonnet's Arbeitszeit: ~7-10 Stunden (Code-Generierung + Debugging)
+
+
+================================================================================
+
+TEIL H: COPILOT-BRIDGE (TATSÄCHLICHE AUSFÜHRUNG)
+
+================================================================================
+
+KONTEXT:
+  Teile C-G beschreiben, WAS Hans tun soll. Teil H beschreibt, WIE Hans
+  den VS Code Copilot tatsächlich ansteuert, damit aus dem Plan echter
+  Code wird. Ohne Teil H bleibt das System ein "Architekt ohne Hände".
+
+  Zielumgebung für diese Implementierung: Linux (vboxuser-Host).
+  Entsprechend werden xdotool / wtype / ydotool statt AppleScript
+  verwendet. Der Sub-Skill "vscode-bridge" aus Schritt 8 wird hier
+  vollständig zu Ende implementiert.
+
+
+--------------------------------------------------------------------------------
+SCHRITT 25: Prompt-Injection-Adapter (CLI / Datei / UI-Automation)
+--------------------------------------------------------------------------------
+
+BESCHREIBUNG:
+  Hans muss einen Prompt (von Günther formuliert) so an den VS Code
+  Copilot übergeben, dass dieser Code in die richtige Datei schreibt.
+  Da keine Methode zu 100% universell funktioniert, wird eine
+  Adapter-Kette mit sauberem Fallback implementiert.
+
+WAS SONNET MACHEN SOLL:
+
+  25.1 Erstelle eine neue Pipeline-Datei:
+       workspace/skills/game-dev-orchestrator/pipeline/copilot-bridge.md
+
+       Inhalt: Dokumentiert die drei Adapter in fester Reihenfolge:
+
+       ADAPTER A: "file-injection" (Standard, deterministisch)
+         - Hans erstellt die Zieldatei mit Copilot-Anweisungskommentar
+           am Anfang (siehe Schritt 8.1)
+         - Hans schreibt zusätzlich in den Workspace-Ordner die Datei
+           .plan/copilot-task.md mit dem aktuellen Prompt
+         - VS Code Workspace ist bereits geöffnet (chat.agent.enabled)
+         - Hans triggert den Copilot Agent Mode per CLI:
+             code --command "github.copilot.interactiveEditor.explain"
+           oder (bevorzugt) per VS Code Task:
+             code --command "workbench.action.tasks.runTask" \
+                  --args '{"task":"copilot-run-phase"}'
+         - Der Task ruft intern "chat.openAgent" mit dem Inhalt von
+           .plan/copilot-task.md als Prompt auf
+         - Erfolgskriterium: Die in "expectedFiles" genannten Dateien
+           wurden innerhalb des Phasen-Timeouts geschrieben/geändert
+
+       ADAPTER B: "gh-copilot-cli" (fallback, wenn A nicht verfügbar)
+         - Voraussetzung: gh auth status OK + gh extension install
+           github/gh-copilot
+         - Hans generiert Code per:
+             gh copilot suggest -t shell --no-input "<PROMPT>"
+           oder für tatsächliche C#-Files:
+             cat prompt.md | gh models run claude-sonnet-4.6 > out.cs
+         - Nur für Dateien, die nicht zwingend den Workspace-Kontext
+           brauchen (Utility-Klassen, Templates)
+
+       ADAPTER C: "ui-automation" (Notfall-Fallback)
+         - Linux: xdotool (X11) bzw. ydotool (Wayland)
+         - Referenzbefehl (X11):
+             xdotool search --name "Visual Studio Code" windowactivate \
+               --sync key --clearmodifiers ctrl+alt+i
+             sleep 0.5
+             # Prompt in Clipboard laden
+             xclip -selection clipboard -i <<< "<PROMPT>"
+             xdotool key --clearmodifiers ctrl+v
+             xdotool key Return
+         - Voraussetzung: DISPLAY gesetzt, X11 oder Wayland-Compositor
+         - Timing-Puffer: 500-1500ms zwischen Aktionen
+         - Nur aktivieren, wenn Adapter A+B explizit fehlschlagen
+
+  25.2 Erweitere gamedev-config.json um den Block:
+
+       "copilotBridge": {
+         "preferredAdapter": "file-injection",
+         "fallbackChain": ["file-injection", "gh-copilot-cli",
+                           "ui-automation"],
+         "vscodeWorkspacePath": null,
+         "taskName": "copilot-run-phase",
+         "uiAutomation": {
+           "enabled": false,
+           "tool": "xdotool",
+           "display": ":0",
+           "typingDelayMs": 25
+         },
+         "timeoutSeconds": 180,
+         "pollIntervalSeconds": 3
+       }
+
+  25.3 Erstelle Test-Fixture:
+       tests/fixtures/copilot-bridge-cases.json
+
+       Mind. 6 Fälle: Adapter A OK, Adapter A Timeout,
+       B als Fallback, C als Fallback, unbekannter Adapter-Name,
+       vscodeWorkspacePath fehlt.
+
+  25.4 Erstelle tests/test-copilot-bridge.sh
+       Validiert: Konfigurationsblock vorhanden, Fallback-Kette
+       wohlgeformt, copilot-bridge.md referenziert alle drei Adapter,
+       in execution-loop.md existiert Aufruf callCopilotBridge().
+
+
+--------------------------------------------------------------------------------
+SCHRITT 26: Code-Extraktion und Accept-Handling
+--------------------------------------------------------------------------------
+
+BESCHREIBUNG:
+  Nachdem der Copilot Code produziert hat, muss Hans sicherstellen,
+  dass der Code (a) tatsächlich in der Datei landet, (b) keine
+  Markdown-Fences oder Meta-Kommentare enthält und (c) die erwarteten
+  Klassen/Methoden liefert.
+
+WAS SONNET MACHEN SOLL:
+
+  26.1 Erweitere pipeline/copilot-bridge.md um Abschnitt "Extraction".
+
+       Algorithmus extractCleanCode(rawFile, expectedFile):
+         1. Lies rawFile
+         2. Entferne führende/nachgestellte Codeblock-Fences ``` oder
+            ```csharp (nur äußerste Hülle)
+         3. Entferne Zeilen, die mit "Hier ist dein Code:",
+            "Here is the code:" o.ä. beginnen
+         4. Prüfe C#-Sanity:
+            - Enthält genau eine "public class" / "public struct"
+              pro Datei (oder so viele wie im Prompt verlangt)
+            - Geschweifte Klammern {} sind balanced
+            - "using"-Statements stehen ganz oben, nicht in der Mitte
+         5. Schreibe bereinigten Inhalt atomar zurück
+         6. Git-Diff loggen nach .plan/copilot-diffs/phaseN.diff
+
+  26.2 Erweitere gamedev-config.json:
+
+       "codeExtraction": {
+         "stripMarkdownFences": true,
+         "stripPreambles": true,
+         "requireBalancedBraces": true,
+         "maxFileSizeKb": 200,
+         "diffDir": ".plan/copilot-diffs"
+       }
+
+  26.3 Definiere Accept-Policy (wann gilt eine Phase als erledigt):
+
+       accepted = (
+         all(expectedFiles exist) AND
+         all(expectedFiles changed within phaseTimeout) AND
+         extractCleanCode passed for each file AND
+         no file contains forbidden tokens:
+           ["TODO-COPILOT", "PLACEHOLDER", "<PROMPT>",
+            "your code here", "implementiere dies"]
+       )
+
+  26.4 Rejection-Handling:
+       Wenn accepted == false -> State CORRECTING mit reason:
+         "extraction_failed" | "timeout" | "unchanged" |
+         "forbidden_token" | "unbalanced_syntax"
+       Dieser Reason-String fließt in die Error-Analyse von Günther
+       (error-correction.md, Schritt 15) ein.
+
+  26.5 Tests:
+       tests/test-code-extraction.sh mit Fixtures:
+         - fence-wrapped.cs.txt
+         - with-preamble.cs.txt
+         - unbalanced.cs.txt
+         - forbidden-token.cs.txt
+         - clean.cs.txt
+       Erwartung: 4x reject, 1x accept.
+
+
+--------------------------------------------------------------------------------
+SCHRITT 27: Approval-Gates und Sicherheitsmodus
+--------------------------------------------------------------------------------
+
+BESCHREIBUNG:
+  Da Hans den Copilot dazu bringt, direkt auf das Dateisystem zu
+  schreiben, braucht es klar definierte Sicherheitsgrenzen. Ohne
+  Approval-Gates könnte eine fehlerhafte Plan-Generierung zu
+  ungewollten Dateiänderungen außerhalb des Projektes führen.
+
+WAS SONNET MACHEN SOLL:
+
+  27.1 Erweitere gamedev-config.json:
+
+       "safety": {
+         "writeScope": [
+           "~/GameDev-Projekte/<projectName>/**",
+           "~/.openclaw/workspace/memory/gamedev-*.json"
+         ],
+         "denyScope": [
+           "~/.ssh/**", "/etc/**", "/usr/**", "~/.config/**",
+           "~/.openclaw/openclaw.json"
+         ],
+         "approvalMode": "auto-with-telegram-veto",
+         "vetoWindowSeconds": 20,
+         "maxFilesChangedPerPhase": 15,
+         "maxBytesPerFile": 204800,
+         "dryRunFirstRun": true
+       }
+
+       Approval-Modi:
+         - "manual"                 -> Jede Phase explizit bestätigen
+         - "auto-with-telegram-veto"-> Start + 20s Veto-Fenster
+         - "fully-autonomous"       -> Nur Notfall-Halt möglich
+
+  27.2 Erstelle pipeline/safety-gates.md
+
+       Beschreibt pro State-Übergang die Gate-Prüfung:
+         PLANNING -> INITIALIZING : Plan-Hash in Telegram schicken,
+                                    Veto-Fenster öffnen
+         EXECUTING -> VERIFYING   : writeScope gegen tatsächliche
+                                    Datei-Pfade prüfen
+         PHASE_DONE -> NEXT_PHASE : Budget-Check (siehe Schritt 33)
+
+  27.3 Dry-Run-Modus:
+       Beim allerersten Lauf eines neuen Users erzwingt das System
+       dryRunFirstRun=true. In diesem Modus werden Prompts gebaut,
+       Adapter A aber NICHT ausgeführt. Stattdessen schreibt Hans
+       alle Prompts in .plan/dry-run/phaseN-prompt.md und sendet dem
+       User eine Zusammenfassung. Erst nach expliziter Freigabe
+       ("Hans, echter Lauf") wird dryRunFirstRun auf false gesetzt.
+
+  27.4 Tests:
+       - tests/test-safety-gates.sh prüft:
+         * denyScope-Verletzung -> Phase abgebrochen
+         * maxFilesChangedPerPhase überschritten -> Phase abgebrochen
+         * approvalMode in gamedev-config.json ist gesetzter Enum-Wert
+         * dryRunFirstRun produziert .plan/dry-run/* Dateien
+
+
+================================================================================
+
+TEIL I: UNITY-RUNTIME-WATCHER (TATSÄCHLICHE AUSFÜHRUNG)
+
+================================================================================
+
+KONTEXT:
+  Schritt 9 beschreibt den AutoCompileWatcher als Template. Teil I
+  sorgt dafür, dass der Watcher in jedem neu erzeugten Projekt
+  automatisch aktiv ist und dass Hans unabhängig vom laufenden Unity
+  Editor an Fehler kommt (Batchmode-Fallback). Die Fehler-Pipeline
+  wird in die State-Machine aus Teil D integriert.
+
+
+--------------------------------------------------------------------------------
+SCHRITT 28: AutoCompileWatcher im Projekt deployen
+--------------------------------------------------------------------------------
+
+BESCHREIBUNG:
+  Jedes neue Projekt muss beim Initialisieren den Watcher in
+  Assets/Editor/ liegen haben, bevor Phase 1 startet. Der Status
+  wird in .plan/unity-status.json geschrieben, Errors zusätzlich
+  als Append-Log in .plan/error-log.jsonl.
+
+WAS SONNET MACHEN SOLL:
+
+  28.1 Erstelle templates/AutoCompileWatcher.cs.txt als reales
+       Asset (keine Platzhalter mehr). Inhalt entspricht Schritt 9.1,
+       zusätzlich:
+         - Append-Modus für error-log.jsonl (nicht überschreiben)
+         - Schreibt auch currentProject + phaseId, falls in
+           .plan/current-phase.json lesbar
+         - FSW-Kompatibel: atomare Writes über .tmp + Rename
+
+  28.2 Erweitere Schritt 6 (project-initializer) Implementierungsnote
+       in pipeline/project-init.md:
+
+       Nach "g) Git initialisieren" NEU:
+       h) cp templates/AutoCompileWatcher.cs.txt \
+            Assets/Editor/AutoCompileWatcher.cs
+       i) touch .plan/unity-status.json
+       j) echo '[]' > .plan/error-log.jsonl   (leere NDJSON-Datei)
+       k) Unity einmal im Batchmode starten, damit Editor-Script
+          compiled ist:
+            Unity -batchmode -quit -projectPath "$PROJECT" \
+                  -logFile .plan/unity-init.log
+
+  28.3 Erstelle pipeline/unity-watcher.md
+       Dokumentiert das Datenmodell der beiden Dateien:
+
+       unity-status.json Schema:
+         { "status": "idle|compiling|success|error|runtime-error",
+           "message": "string",
+           "timestamp": "ISO8601",
+           "phaseId": number|null,
+           "errorCount": number }
+
+       error-log.jsonl Schema (eine Zeile pro Fehler):
+         { "timestamp":"...", "phaseId":n, "type":"Error|Exception",
+           "message":"...", "stackTrace":"...",
+           "file":"Assets/Scripts/...", "line":n }
+
+  28.4 Tests:
+       tests/test-unity-watcher.sh prüft:
+         - Template existiert und kompiliert syntaktisch (via
+           `dotnet-script` nur Syntax-Check, kein Run)
+         - Schema-Validator für unity-status.json
+         - project-init.md enthält Schritte h-k
+
+
+--------------------------------------------------------------------------------
+SCHRITT 29: Batchmode-Kompilierung als Fallback
+--------------------------------------------------------------------------------
+
+BESCHREIBUNG:
+  Wenn der User Unity NICHT geöffnet hat, würde der Editor-Watcher
+  keine Events liefern. Für diesen Fall muss Hans Unity selbst im
+  Batchmode triggern, um Kompilierung zu erzwingen.
+
+WAS SONNET MACHEN SOLL:
+
+  29.1 Erweitere pipeline/unity-watcher.md um Sektion "Batchmode":
+
+       compileOnce(projectPath):
+         1. Prüfe per pgrep, ob Unity Editor mit dem Projekt läuft
+         2. Falls JA: Event-basiertes Warten (unity-status.json)
+         3. Falls NEIN:
+            Unity -batchmode -quit \
+                  -projectPath "$projectPath" \
+                  -logFile .plan/unity-batch.log \
+                  -executeMethod OpenClaw.BatchCompile.Run
+         4. Parse .plan/unity-batch.log nach:
+            - "error CS" -> errorCount++
+            - "Compilation succeeded" -> status=success
+         5. Schreibe synthetisches unity-status.json
+
+  29.2 Template templates/BatchCompile.cs.txt (neues Editor-Script):
+
+       namespace OpenClaw {
+         public static class BatchCompile {
+           public static void Run() {
+             UnityEditor.Compilation.CompilationPipeline.RequestScriptCompilation();
+             UnityEditor.EditorApplication.Exit(0);
+           }
+         }
+       }
+
+  29.3 gamedev-config.json erweitern:
+
+       "unity": {
+         ...
+         "mode": "auto",     // "editor" | "batch" | "auto"
+         "batchLogFile": ".plan/unity-batch.log",
+         "statusFile": ".plan/unity-status.json",
+         "errorLogFile": ".plan/error-log.jsonl",
+         "compileTimeoutSeconds": 180
+       }
+
+  29.4 Tests:
+       tests/test-unity-batchmode.sh
+         - Simuliert unity-batch.log mit "error CS0246" -> status=error
+         - Simuliert Log ohne Fehler -> status=success
+         - Timeout-Simulation -> status=timeout
+
+
+--------------------------------------------------------------------------------
+SCHRITT 30: Fehler-Pipeline Unity -> Hans -> Günther
+--------------------------------------------------------------------------------
+
+BESCHREIBUNG:
+  Die drei Puzzle-Teile (Watcher + Günther-Error-Analyse + Copilot-
+  Correction-Prompt) müssen konkret verdrahtet werden. Teil I30
+  beschreibt die genaue Reihenfolge und Datenübergabe.
+
+WAS SONNET MACHEN SOLL:
+
+  30.1 Erweitere pipeline/error-correction.md um Sektion "Wiring":
+
+       onVerifyPhase():
+         status = readJson(.plan/unity-status.json)
+         if status.status == "success": return PHASE_DONE
+         if status.status in ["error","runtime-error"]:
+            errs = tail(.plan/error-log.jsonl, lastN=5)
+            payload = {
+              phaseId: currentPhase,
+              attempt: currentAttempt,
+              errors: errs,
+              sourceFiles: readChangedFiles()
+            }
+            analysis = gunther.analyzeError(payload)
+            correctionPrompt = analysis.correctionPrompt
+            nextModel = selectModel(
+              phase=currentPhase,
+              retryCount=currentAttempt+1,
+              override=analysis.severity=="critical" ? "opus" : null
+            )
+            return CORRECTING(correctionPrompt, nextModel)
+
+  30.2 Update pipeline/execution-loop.md:
+       In Schritt 5 (Verifikation) expliziten Call auf onVerifyPhase()
+       einfügen. Gleichzeitig dokumentieren, dass logRoutingDecision()
+       für den Korrektur-Prompt einen separaten Eintrag produziert
+       (wichtig fürs Kosten-Tracking).
+
+  30.3 Tests:
+       tests/test-error-pipeline.sh prüft Fixtures:
+         - error-log.jsonl mit 1 CS0246 -> erwarteter correctionPrompt
+           enthält Keyword "using"
+         - error-log.jsonl mit NullReferenceException -> severity=major,
+           Retry mit gleichem Modell
+         - 5x attempt -> Fallback nach Schritt 15.3 (User-Hilfe)
+
+
+================================================================================
+
+TEIL J: AUTONOMER END-TO-END-LAUF
+
+================================================================================
+
+KONTEXT:
+  Jetzt wird alles zusammengeschraubt: Von "User tippt einen Satz in
+  Telegram" bis "fertige Unity .exe im Builds/-Ordner". Teil J macht
+  aus dem System einen laufenden Daemon, der Stunden bis Tage ohne
+  Eingreifen durchläuft.
+
+
+--------------------------------------------------------------------------------
+SCHRITT 31: Telegram-Trigger und Run-Kommandos
+--------------------------------------------------------------------------------
+
+BESCHREIBUNG:
+  Der Einstiegspunkt für den User ist Telegram. Hans muss bestimmte
+  Befehle erkennen und die game-dev-orchestrator Pipeline starten.
+
+WAS SONNET MACHEN SOLL:
+
+  31.1 Erstelle pipeline/telegram-commands.md
+
+       Kommandos:
+         /newgame <freitext>
+           -> State WAITING -> ANALYZING, startet neuen Run
+         /status
+           -> Gibt aktuellen State, Phase, Cost-to-date, ETA zurück
+         /phases
+           -> Listet master-plan.json als nummerierte Liste
+         /pause
+           -> Setzt state.paused=true, kein neuer Copilot-Call
+         /resume
+           -> state.paused=false, nächste Phase startet
+         /abort [grund]
+           -> Hard-Stop, State = ABORTED, Telegram-Bericht
+         /approve <planHash>
+           -> Bestätigt Plan im approvalMode=manual
+         /rating <1-5> [kommentar]
+           -> Schreibt Feedback (Teil G, Schritt 24)
+
+  31.2 SKILL.md Trigger-Sektion erweitern:
+       Zu den existierenden Triggern ("Bau mir ein Spiel...") ergänzen:
+         - Nachrichten, die mit "/newgame" oder "/status" beginnen
+         - Fallback: Wenn Freitext game-bezogen UND kein Projekt aktiv,
+           implizit wie /newgame behandeln (mit Rückfrage)
+
+  31.3 Tests:
+       tests/test-telegram-commands.sh (mock Telegram-Events als
+       JSON-Fixtures) prüft Parser + State-Übergang.
+
+
+--------------------------------------------------------------------------------
+SCHRITT 32: Daemon-Loop und Zustandspersistenz
+--------------------------------------------------------------------------------
+
+BESCHREIBUNG:
+  Hans läuft bereits als OpenClaw-Daemon. Der game-dev-orchestrator
+  muss in diesem Daemon einen Tick-Handler registrieren, der auch
+  nach einem Neustart den letzten Zustand korrekt wiederherstellt.
+
+WAS SONNET MACHEN SOLL:
+
+  32.1 Erweitere pipeline/master-orchestrator.md um "Tick-Loop":
+
+       onTick (alle 5s):
+         if state.paused: return
+         switch state.current:
+           WAITING       -> nichts tun
+           ANALYZING     -> runAnalysis(); transition
+           PLANNING      -> callGuentherPlan(); transition
+           INITIALIZING  -> initProject(); transition
+           EXECUTING     -> callCopilotBridge(); transition
+           VERIFYING     -> onVerifyPhase(); transition
+           CORRECTING    -> applyCorrection(); transition
+           PHASE_DONE    -> maybeAdvancePhase(); transition
+           BUILDING      -> runUnityBuild(); transition
+           ARCHIVING     -> archiveProject(); transition
+           AWAITING_FEEDBACK -> waitFeedback(); transition
+           DONE          -> cleanup; emit Telegram-Zusammenfassung
+           ABORTED       -> persistiere Postmortem, zurück auf WAITING
+
+  32.2 Persistenz:
+       Nach jedem transition() atomar schreiben:
+         .plan/orchestrator-state.json
+         workspace/memory/gamedev-state.json
+       Beim Daemon-Start (OpenClaw-Boot) wird gamedev-state.json
+       gelesen. Ist currentProject != null und state != DONE|WAITING,
+       schickt Hans an Telegram:
+         "Offener Run gefunden: <projekt>, State <X>, Phase <n>.
+          Fortsetzen? /resume oder /abort"
+
+  32.3 Crash-Recovery:
+       Wenn beim Tick in einem State die Aktion fehlschlägt
+       (Exception), Retry mit exponential backoff (5s, 30s, 120s).
+       Nach 3 Fehlversuchen -> ABORTED + Telegram-Alarm mit
+       Stacktrace-Snippet und Link auf .plan/ Ordner.
+
+  32.4 Tests:
+       tests/test-daemon-loop.sh:
+         - Simuliere Reboot mitten in EXECUTING -> Recovery-Prompt
+         - Simuliere Exception in callCopilotBridge -> backoff-Plan
+         - orchestrator-state.json wird atomar geschrieben
+           (kein lost-update beim Crash)
+
+
+--------------------------------------------------------------------------------
+SCHRITT 33: Notfall-Halt, Budget- und Zeitlimits
+--------------------------------------------------------------------------------
+
+BESCHREIBUNG:
+  Ohne harte Grenzen kann das System im Fehlerfall beliebig viele
+  Copilot-Calls verursachen oder tagelang im Kreis laufen. Teil J33
+  installiert harte Stopps auf Kosten- und Zeitebene.
+
+WAS SONNET MACHEN SOLL:
+
+  33.1 Erweitere gamedev-config.json:
+
+       "limits": {
+         "maxCostUsdPerRun": 5.00,
+         "maxCostUsdPerPhase": 1.00,
+         "maxWallclockMinutesPerRun": 180,
+         "maxRetriesPerPhase": 5,
+         "maxTotalRetriesPerRun": 25,
+         "killSwitchFile": "~/.openclaw/STOP_GAMEDEV"
+       }
+
+  33.2 Killswitch:
+       Vor jedem Tick prüft Hans, ob killSwitchFile existiert.
+       Falls ja -> sofortiger Übergang in ABORTED, Telegram-Info,
+       Datei wird nach Bestätigung gelöscht.
+
+  33.3 Cost-Enforcement:
+       Nutzt bereits existierendes model-usage.json (Teil G).
+       Vor jedem Copilot-Call:
+         projected = currentRun.totalCostUsd + estimatedCost(model)
+         if projected > maxCostUsdPerRun:
+           return HALT("budget_exhausted")
+         if phaseCost + estimatedCost > maxCostUsdPerPhase:
+           escalate to cheaper model or HALT
+
+  33.4 Wallclock-Enforcement:
+       In der Tick-Loop: now - run.startedAt > maxWallclock -> HALT.
+
+  33.5 Tests:
+       tests/test-limits.sh prüft:
+         - Mock-Usage 4.80 USD + next call 0.30 -> HALT
+         - Killswitch-Datei existiert -> state == ABORTED im nächsten Tick
+         - Wallclock 181 min -> HALT
+
+  33.6 Erweitere tests/run-tests.sh um neue Suiten:
+         "31. Copilot-Bridge (Schritt 25-27)"
+         "32. Unity-Watcher (Schritt 28-30)"
+         "33. Telegram-Commands (Schritt 31)"
+         "34. Daemon-Loop (Schritt 32)"
+         "35. Limits & Killswitch (Schritt 33)"
+
+
+================================================================================
+
+ABSCHLUSSNOTE ZU TEIL H-J
+================================================================================
+
+Mit Teil G war das System ein Architekt mit Gedaechtnis aber ohne
+Haende. Mit Teil H bekommt Hans Haende (Copilot-Bridge), mit Teil I
+bekommt er Augen (Unity-Watcher), und mit Teil J einen Puls
+(Daemon-Loop + Telegram-Trigger).
+
+Ab diesem Punkt entspricht das System der urspruenglichen
+User-Intention:
+
+  Eingabe via Telegram:
+    "/newgame Bau mir ein Spiel wie The Long Drive mit Katzen"
+
+  Automatischer Ablauf:
+    Hans erkennt Intent
+      -> Guenther plant 10 Phasen
+      -> Telegram-Veto-Fenster (20s)
+      -> fuer jede Phase:
+           Model-Routing waehlt Haiku/Sonnet/Opus
+           Copilot-Bridge injiziert Prompt (Adapter A/B/C)
+           Unity-Watcher meldet Status
+           Bei Fehler: Guenther analysiert + korrigiert (max 5x)
+           Pattern-Erkennung updated gamedev-patterns.json
+      -> Build via Unity Batchmode
+      -> Archiving + Feedback-Abfrage in Telegram
+
+Der User ist nur noch am Anfang (Prompt) und am Ende (Rating) aktiv.
+Waehrend des Runs ist Eingreifen moeglich (/pause, /abort), aber
+nicht erforderlich.
 
 
 ================================================================================
