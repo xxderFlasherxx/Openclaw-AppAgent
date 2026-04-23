@@ -1,0 +1,209 @@
+using UnityEditor;
+using UnityEditor.Build.Reporting;
+using UnityEngine;
+using System.IO;
+using System.Linq;
+using System.Text;
+
+/// <summary>
+/// AutoBuilder - Unity Editor Script für automatisiertes Bauen.
+/// Wird von Hans (OpenClaw) über die Unity CLI aufgerufen:
+///   Unity -batchmode -projectPath [pfad] -executeMethod AutoBuilder.Build -quit
+///
+/// Schreibt Build-Status nach .plan/build-status.json für die Pipeline.
+/// </summary>
+public class AutoBuilder
+{
+    private static string PlanDir => Path.Combine(
+        System.Environment.CurrentDirectory, ".plan");
+
+    private static string StatusFile => Path.Combine(PlanDir, "build-status.json");
+    private static string LogFile => Path.Combine(PlanDir, "build-log.txt");
+
+    // ============================
+    // HAUPT-BUILD METHODEN
+    // ============================
+
+    /// <summary>
+    /// Standard-Build für Windows (StandaloneWindows64).
+    /// Aufruf: -executeMethod AutoBuilder.Build
+    /// </summary>
+    [MenuItem("Build/Build Game (Windows)")]
+    public static void Build()
+    {
+        BuildGame(BuildTarget.StandaloneWindows64, "game.exe");
+    }
+
+    /// <summary>
+    /// Build für Linux.
+    /// Aufruf: -executeMethod AutoBuilder.BuildLinux
+    /// </summary>
+    [MenuItem("Build/Build Game (Linux)")]
+    public static void BuildLinux()
+    {
+        BuildGame(BuildTarget.StandaloneLinux64, "game.x86_64");
+    }
+
+    /// <summary>
+    /// Build für WebGL.
+    /// Aufruf: -executeMethod AutoBuilder.BuildWebGL
+    /// </summary>
+    [MenuItem("Build/Build Game (WebGL)")]
+    public static void BuildWebGL()
+    {
+        BuildGame(BuildTarget.WebGL, "WebGL");
+    }
+
+    /// <summary>
+    /// Development-Build mit Debug-Symbolen.
+    /// Aufruf: -executeMethod AutoBuilder.BuildDev
+    /// </summary>
+    [MenuItem("Build/Build Game (Dev)")]
+    public static void BuildDev()
+    {
+        BuildGame(BuildTarget.StandaloneLinux64, "game-dev.x86_64",
+            BuildOptions.Development | BuildOptions.AllowDebugging);
+    }
+
+    // ============================
+    // KERNLOGIK
+    // ============================
+
+    private static void BuildGame(BuildTarget target, string fileName,
+        BuildOptions extraOptions = BuildOptions.None)
+    {
+        EnsurePlanDir();
+
+        string buildDir = Path.Combine(
+            System.Environment.CurrentDirectory, "Builds", target.ToString());
+        Directory.CreateDirectory(buildDir);
+
+        string[] scenes = GetEnabledScenes();
+        if (scenes.Length == 0)
+        {
+            WriteStatus("failed", "Keine Szenen in Build Settings gefunden.", 0, 0);
+            LogMessage("FEHLER: Keine Szenen in EditorBuildSettings. " +
+                       "Füge mindestens eine Szene hinzu.");
+            return;
+        }
+
+        LogMessage($"Build gestartet: Target={target}, Szenen={scenes.Length}");
+        LogMessage($"Szenen: {string.Join(", ", scenes)}");
+
+        BuildPlayerOptions options = new BuildPlayerOptions
+        {
+            scenes = scenes,
+            locationPathName = Path.Combine(buildDir, fileName),
+            target = target,
+            options = BuildOptions.None | extraOptions
+        };
+
+        BuildReport report = BuildPipeline.BuildPlayer(options);
+        ProcessBuildReport(report, buildDir);
+    }
+
+    private static void ProcessBuildReport(BuildReport report, string buildDir)
+    {
+        var summary = report.summary;
+
+        if (summary.result == BuildResult.Succeeded)
+        {
+            long sizeBytes = summary.totalSize > 0 ? (long)summary.totalSize : GetFolderSize(buildDir);
+            string sizeMB = (sizeBytes / (1024f * 1024f)).ToString("F2");
+
+            WriteStatus("success", "Build erfolgreich abgeschlossen.",
+                summary.totalErrors, summary.totalWarnings,
+                sizeMB, buildDir, summary.totalTime.TotalSeconds);
+
+            LogMessage($"BUILD ERFOLGREICH: {sizeMB} MB, " +
+                       $"{summary.totalWarnings} Warnungen, " +
+                       $"{summary.totalTime.TotalSeconds:F1}s");
+        }
+        else
+        {
+            StringBuilder errors = new StringBuilder();
+
+            foreach (var step in report.steps)
+            {
+                foreach (var msg in step.messages)
+                {
+                    if (msg.type == LogType.Error)
+                    {
+                        errors.AppendLine(msg.content);
+                    }
+                }
+            }
+
+            WriteStatus("failed",
+                errors.Length > 0 ? errors.ToString() : "Build fehlgeschlagen (unbekannter Fehler).",
+                summary.totalErrors, summary.totalWarnings);
+
+            LogMessage($"BUILD FEHLGESCHLAGEN: {summary.totalErrors} Fehler");
+            LogMessage(errors.ToString());
+        }
+    }
+
+    // ============================
+    // HILFSFUNKTIONEN
+    // ============================
+
+    private static string[] GetEnabledScenes()
+    {
+        return EditorBuildSettings.scenes
+            .Where(s => s.enabled && !string.IsNullOrEmpty(s.path))
+            .Select(s => s.path)
+            .ToArray();
+    }
+
+    private static void WriteStatus(string status, string message,
+        int errors = 0, int warnings = 0,
+        string sizeMB = "0", string buildPath = "", double seconds = 0)
+    {
+        string json = "{\n" +
+            $"  \"status\": \"{EscapeJson(status)}\",\n" +
+            $"  \"message\": \"{EscapeJson(message)}\",\n" +
+            $"  \"errors\": {errors},\n" +
+            $"  \"warnings\": {warnings},\n" +
+            $"  \"sizeMB\": \"{sizeMB}\",\n" +
+            $"  \"buildPath\": \"{EscapeJson(buildPath)}\",\n" +
+            $"  \"buildTimeSeconds\": {seconds:F1},\n" +
+            $"  \"timestamp\": \"{System.DateTime.UtcNow:o}\"\n" +
+            "}";
+
+        File.WriteAllText(StatusFile, json, Encoding.UTF8);
+    }
+
+    private static void LogMessage(string message)
+    {
+        string line = $"[{System.DateTime.UtcNow:HH:mm:ss}] {message}\n";
+        File.AppendAllText(LogFile, line, Encoding.UTF8);
+        Debug.Log($"[AutoBuilder] {message}");
+    }
+
+    private static void EnsurePlanDir()
+    {
+        if (!Directory.Exists(PlanDir))
+        {
+            Directory.CreateDirectory(PlanDir);
+        }
+    }
+
+    private static string EscapeJson(string text)
+    {
+        if (string.IsNullOrEmpty(text)) return "";
+        return text
+            .Replace("\\", "\\\\")
+            .Replace("\"", "\\\"")
+            .Replace("\n", "\\n")
+            .Replace("\r", "\\r")
+            .Replace("\t", "\\t");
+    }
+
+    private static long GetFolderSize(string path)
+    {
+        if (!Directory.Exists(path)) return 0;
+        return new DirectoryInfo(path)
+            .GetFiles("*", SearchOption.AllDirectories)
+            .Sum(f => f.Length);
+    }
+}

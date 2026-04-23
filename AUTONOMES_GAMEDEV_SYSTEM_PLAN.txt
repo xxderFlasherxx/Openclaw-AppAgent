@@ -38,7 +38,7 @@ INHALTSVERZEICHNIS
     - Schritt 15: Das Fehler-Korrektur-System bauen
     - Schritt 16: Das Kontext-Management implementieren
 
-  TEIL E: UNITY-INTEGRATION
+  > TEIL E: UNITY-INTEGRATION
     - Schritt 17: Unity-Projekt-Templates vorbereiten
     - Schritt 18: Unity Editor-Skripte für Automation
     - Schritt 19: Unity Build-Pipeline automatisieren

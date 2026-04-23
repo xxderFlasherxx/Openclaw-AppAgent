@@ -1,0 +1,178 @@
+using UnityEngine;
+using System;
+
+/// <summary>
+/// Basis-InputManager mit Unity Legacy Input Manager.
+/// Zero-Config: Funktioniert sofort ohne zusätzliche Assets oder Setup.
+/// Stellt alle Standard-Inputs als Events und Properties bereit.
+/// Genre-spezifische Erweiterungen können von dieser Klasse erben.
+/// </summary>
+public class InputManager : Singleton<InputManager>
+{
+    // ─── Key Bindings (im Inspector konfigurierbar) ────────────────────────
+    [Header("Key Bindings")]
+    [SerializeField] private KeyCode jumpKey      = KeyCode.Space;
+    [SerializeField] private KeyCode interactKey  = KeyCode.E;
+    [SerializeField] private KeyCode pauseKey     = KeyCode.Escape;
+    [SerializeField] private KeyCode sprintKey    = KeyCode.LeftShift;
+    [SerializeField] private KeyCode crouchKey    = KeyCode.LeftControl;
+
+    [Header("Mouse Sensitivity")]
+    [SerializeField] private float mouseSensX = 2f;
+    [SerializeField] private float mouseSensY = 2f;
+
+    // ─── Bewegungs-Properties ──────────────────────────────────────────────
+    /// <summary>Normierter Bewegungs-Vektor (WASD/Pfeiltasten). Diagonal = volle Länge.</summary>
+    public Vector2 MoveInput { get; private set; }
+
+    /// <summary>Maus-Delta, skaliert mit Sensitivity (Mouse X/Y Achsen).</summary>
+    public Vector2 LookInput { get; private set; }
+
+    // ─── Action-Events ─────────────────────────────────────────────────────
+    /// <summary>Wird ausgelöst wenn Jump-Taste gedrückt wird (einmalig pro Tastendruck).</summary>
+    public event Action OnJumpPressed;
+
+    /// <summary>Wird ausgelöst wenn Interact-Taste gedrückt wird.</summary>
+    public event Action OnInteractPressed;
+
+    /// <summary>Wird ausgelöst wenn Pause-Taste gedrückt wird.</summary>
+    public event Action OnPausePressed;
+
+    /// <summary>Wird ausgelöst beim Drücken der linken Maustaste.</summary>
+    public event Action OnPrimaryActionPressed;
+
+    /// <summary>Wird ausgelöst beim Loslassen der linken Maustaste.</summary>
+    public event Action OnPrimaryActionReleased;
+
+    /// <summary>Wird ausgelöst beim Drücken der rechten Maustaste.</summary>
+    public event Action OnSecondaryActionPressed;
+
+    /// <summary>Wird ausgelöst beim Loslassen der rechten Maustaste.</summary>
+    public event Action OnSecondaryActionReleased;
+
+    // ─── Zustands-Properties ──────────────────────────────────────────────
+    /// <summary>True solange Sprint-Taste gehalten wird.</summary>
+    public bool IsSprintHeld { get; private set; }
+
+    /// <summary>True solange Crouch-Taste gehalten wird.</summary>
+    public bool IsCrouchHeld { get; private set; }
+
+    /// <summary>True wenn Input aktiv ist (nicht durch Menü/Dialog blockiert).</summary>
+    public bool InputEnabled { get; private set; } = true;
+
+    // ─── Interne Zustandsfelder ────────────────────────────────────────────
+    private bool _prevPrimaryAction;
+    private bool _prevSecondaryAction;
+
+    // ─── Unity-Lifecycle ──────────────────────────────────────────────────
+    private void Update()
+    {
+        // Pause-Taste: auch wenn InputEnabled = false (UI braucht Pause)
+        if (Input.GetKeyDown(pauseKey))
+            OnPausePressed?.Invoke();
+
+        if (!InputEnabled)
+        {
+            // Bewegungs-Inputs auf Null setzen wenn deaktiviert
+            MoveInput = Vector2.zero;
+            LookInput = Vector2.zero;
+            IsSprintHeld = false;
+            IsCrouchHeld = false;
+            return;
+        }
+
+        // --- Bewegung ---
+        MoveInput = new Vector2(
+            Input.GetAxisRaw("Horizontal"),
+            Input.GetAxisRaw("Vertical")
+        );
+
+        // --- Look (Maus-Delta, mit Sensitivity skaliert) ---
+        LookInput = new Vector2(
+            Input.GetAxis("Mouse X") * mouseSensX,
+            Input.GetAxis("Mouse Y") * mouseSensY
+        );
+
+        // --- Gehaltene Tasten ---
+        IsSprintHeld  = Input.GetKey(sprintKey);
+        IsCrouchHeld  = Input.GetKey(crouchKey);
+
+        // --- Einmalige Tastendrücke ---
+        if (Input.GetKeyDown(jumpKey))     OnJumpPressed?.Invoke();
+        if (Input.GetKeyDown(interactKey)) OnInteractPressed?.Invoke();
+
+        // --- Maus-Buttons (Zustandsübergänge) ---
+        bool primaryNow = Input.GetMouseButton(0);
+        if (primaryNow && !_prevPrimaryAction)   OnPrimaryActionPressed?.Invoke();
+        if (!primaryNow && _prevPrimaryAction)   OnPrimaryActionReleased?.Invoke();
+        _prevPrimaryAction = primaryNow;
+
+        bool secondaryNow = Input.GetMouseButton(1);
+        if (secondaryNow && !_prevSecondaryAction) OnSecondaryActionPressed?.Invoke();
+        if (!secondaryNow && _prevSecondaryAction) OnSecondaryActionReleased?.Invoke();
+        _prevSecondaryAction = secondaryNow;
+    }
+
+    // ─── Public API ───────────────────────────────────────────────────────
+    /// <summary>Input komplett deaktivieren (z.B. in Menüs, Dialogen, Cutscenes).</summary>
+    public void DisableInput()
+    {
+        InputEnabled = false;
+        MoveInput = Vector2.zero;
+        LookInput = Vector2.zero;
+        IsSprintHeld = false;
+        IsCrouchHeld = false;
+        _prevPrimaryAction   = false;
+        _prevSecondaryAction = false;
+    }
+
+    /// <summary>Input wieder aktivieren.</summary>
+    public void EnableInput()
+    {
+        InputEnabled = true;
+    }
+
+    /// <summary>Key Binding zur Laufzeit ändern (z.B. für Key-Remapping-Feature).</summary>
+    public void SetJumpKey(KeyCode key)     => jumpKey     = key;
+    public void SetInteractKey(KeyCode key) => interactKey = key;
+    public void SetSprintKey(KeyCode key)   => sprintKey   = key;
+    public void SetCrouchKey(KeyCode key)   => crouchKey   = key;
+}
+
+/*
+ * ═══════════════════════════════════════════════════════════════════════════
+ * MIGRATION: New Input System
+ * ═══════════════════════════════════════════════════════════════════════════
+ *
+ * Dieses Template nutzt den Legacy Input Manager (kein zusätzliches Setup).
+ *
+ * Um auf das New Input System (com.unity.inputsystem) umzustellen:
+ *
+ * 1. In Project Settings → Player → Other Settings:
+ *    "Active Input Handling" → "New Input System" oder "Both"
+ *
+ * 2. Im Unity Editor: Assets → Create → Input Actions
+ *    Nenne es "PlayerInputActions". Erstelle ActionMap "Gameplay" mit:
+ *    - Move (Value, Vector2)  → WASD / Left Stick
+ *    - Look (Value, Vector2)  → Mouse Delta / Right Stick
+ *    - Jump (Button)          → Space / South Button
+ *    - Interact (Button)      → E / West Button
+ *    - Pause (Button)         → Escape / Start Button
+ *    - Sprint (Button)        → Left Shift / Left Trigger
+ *    - PrimaryAction (Button) → Left Mouse / Right Trigger
+ *    - SecondaryAction (Button)→ Right Mouse / Left Shoulder
+ *    Aktiviere "Generate C# Class" → "Apply"
+ *
+ * 3. Ersetze dann die Update()-Methode durch Callback-Bindings:
+ *    private PlayerInputActions _inputActions;
+ *    protected override void Awake() { base.Awake(); _inputActions = new PlayerInputActions(); }
+ *    private void OnEnable()  { _inputActions.Enable();  BindActions(); }
+ *    private void OnDisable() { _inputActions.Gameplay.Disable(); }
+ *    private void BindActions() {
+ *        var gp = _inputActions.Gameplay;
+ *        gp.Move.performed += ctx => MoveInput = ctx.ReadValue<Vector2>();
+ *        gp.Move.canceled  += _   => MoveInput = Vector2.zero;
+ *        gp.Jump.performed += _ => { if (InputEnabled) OnJumpPressed?.Invoke(); };
+ *        // ... usw. für alle anderen Actions
+ *    }
+ */

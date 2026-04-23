@@ -1,0 +1,81 @@
+using UnityEngine;
+using UnityEngine.UI;
+using TMPro;
+
+/// <summary>
+/// Geschwindigkeitsanzeige / Tachometer UI.
+/// Zeigt km/h, RPM und Gang an.
+/// </summary>
+public class SpeedometerUI : MonoBehaviour
+{
+    [Header("References")]
+    [SerializeField] private VehicleController vehicle;
+
+    [Header("UI Elements")]
+    [SerializeField] private TextMeshProUGUI speedText;
+    [SerializeField] private TextMeshProUGUI rpmText;
+    [SerializeField] private Image speedNeedle;
+    [SerializeField] private Image rpmNeedle;
+
+    [Header("Needle Settings")]
+    [SerializeField] private float needleMinAngle = 125f;
+    [SerializeField] private float needleMaxAngle = -125f;
+    [SerializeField] private float maxSpeedDisplay = 200f;
+    [SerializeField] private float maxRPMDisplay = 7000f;
+
+    [Header("Smoothing")]
+    [SerializeField] private float needleSmoothSpeed = 8f;
+
+    private float _currentNeedleSpeed;
+    private float _currentNeedleRPM;
+
+    private void Update()
+    {
+        if (vehicle == null) return;
+
+        UpdateSpeedDisplay();
+        UpdateRPMDisplay();
+        UpdateNeedles();
+    }
+
+    private void UpdateSpeedDisplay()
+    {
+        if (speedText != null)
+        {
+            int speed = Mathf.RoundToInt(vehicle.CurrentSpeedKmh);
+            speedText.text = $"{speed} km/h";
+        }
+    }
+
+    private void UpdateRPMDisplay()
+    {
+        if (rpmText != null)
+        {
+            int rpm = Mathf.RoundToInt(vehicle.EngineRPM);
+            rpmText.text = $"{rpm} RPM";
+        }
+    }
+
+    private void UpdateNeedles()
+    {
+        // Speed Needle
+        if (speedNeedle != null)
+        {
+            float targetAngle = Mathf.Lerp(needleMinAngle, needleMaxAngle,
+                vehicle.CurrentSpeedKmh / maxSpeedDisplay);
+            _currentNeedleSpeed = Mathf.Lerp(_currentNeedleSpeed, targetAngle,
+                Time.deltaTime * needleSmoothSpeed);
+            speedNeedle.rectTransform.localEulerAngles = new Vector3(0f, 0f, _currentNeedleSpeed);
+        }
+
+        // RPM Needle
+        if (rpmNeedle != null)
+        {
+            float targetAngle = Mathf.Lerp(needleMinAngle, needleMaxAngle,
+                vehicle.EngineRPM / maxRPMDisplay);
+            _currentNeedleRPM = Mathf.Lerp(_currentNeedleRPM, targetAngle,
+                Time.deltaTime * needleSmoothSpeed);
+            rpmNeedle.rectTransform.localEulerAngles = new Vector3(0f, 0f, _currentNeedleRPM);
+        }
+    }
+}

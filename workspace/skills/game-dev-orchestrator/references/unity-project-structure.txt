@@ -42,7 +42,10 @@ UNITY PROJEKT-STRUKTUR (Standard)
 │   ├── Animations/
 │   ├── Shaders/
 │   ├── Editor/
-│   │   └── AutoCompileWatcher.cs
+│   │   ├── AutoBuilder.cs
+│   │   ├── AutoCompileWatcher.cs
+│   │   ├── AutoComponentAssigner.cs
+│   │   └── SceneBootstrapper.cs
 │   └── Resources/
 ├── ProjectSettings/
 ├── Packages/

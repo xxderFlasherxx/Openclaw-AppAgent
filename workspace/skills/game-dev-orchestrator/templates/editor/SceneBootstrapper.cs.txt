@@ -1,0 +1,158 @@
+using UnityEditor;
+using UnityEditor.SceneManagement;
+using UnityEngine;
+using UnityEngine.EventSystems;
+using System.IO;
+
+/// <summary>
+/// SceneBootstrapper - Erstellt automatisch die Basis-GameObjects in einer neuen Szene.
+/// Kann über Unity CLI aufgerufen werden:
+///   Unity -batchmode -projectPath [pfad] -executeMethod SceneBootstrapper.BootstrapAndSave -quit
+/// </summary>
+public class SceneBootstrapper
+{
+    /// <summary>
+    /// Erstellt die Basis-Objekte in der aktuell offenen Szene.
+    /// Menü: Tools → Bootstrap Scene
+    /// </summary>
+    [MenuItem("Tools/Bootstrap Scene")]
+    public static void BootstrapScene()
+    {
+        int created = 0;
+
+        // 1. GameManager
+        if (Object.FindObjectOfType<GameManager>() == null)
+        {
+            var gmObj = new GameObject("GameManager");
+            gmObj.AddComponent<GameManager>();
+            Undo.RegisterCreatedObjectUndo(gmObj, "Create GameManager");
+            created++;
+            Debug.Log("[SceneBootstrapper] GameManager erstellt.");
+        }
+
+        // 2. Main Camera
+        var cam = Camera.main;
+        if (cam == null)
+        {
+            var camObj = new GameObject("Main Camera");
+            camObj.AddComponent<Camera>();
+            camObj.AddComponent<AudioListener>();
+            camObj.tag = "MainCamera";
+            camObj.transform.position = new Vector3(0f, 5f, -10f);
+            camObj.transform.rotation = Quaternion.Euler(15f, 0f, 0f);
+            Undo.RegisterCreatedObjectUndo(camObj, "Create Main Camera");
+            created++;
+            Debug.Log("[SceneBootstrapper] Main Camera erstellt.");
+        }
+
+        // 3. Directional Light
+        if (Object.FindObjectOfType<Light>() == null)
+        {
+            var lightObj = new GameObject("Directional Light");
+            var light = lightObj.AddComponent<Light>();
+            light.type = LightType.Directional;
+            light.color = new Color(1f, 0.95f, 0.84f);
+            light.intensity = 1.2f;
+            light.shadows = LightShadows.Soft;
+            lightObj.transform.rotation = Quaternion.Euler(50f, -30f, 0f);
+            Undo.RegisterCreatedObjectUndo(lightObj, "Create Directional Light");
+            created++;
+            Debug.Log("[SceneBootstrapper] Directional Light erstellt.");
+        }
+
+        // 4. EventSystem (für UI)
+        if (Object.FindObjectOfType<EventSystem>() == null)
+        {
+            var esObj = new GameObject("EventSystem");
+            esObj.AddComponent<EventSystem>();
+            esObj.AddComponent<StandaloneInputModule>();
+            Undo.RegisterCreatedObjectUndo(esObj, "Create EventSystem");
+            created++;
+            Debug.Log("[SceneBootstrapper] EventSystem erstellt.");
+        }
+
+        // 5. Platzhalter-Boden
+        var existingGround = GameObject.Find("Ground");
+        if (existingGround == null)
+        {
+            var ground = GameObject.CreatePrimitive(PrimitiveType.Plane);
+            ground.name = "Ground";
+            ground.transform.localScale = new Vector3(10f, 1f, 10f);
+            ground.isStatic = true;
+            Undo.RegisterCreatedObjectUndo(ground, "Create Ground");
+            created++;
+            Debug.Log("[SceneBootstrapper] Ground-Plane erstellt.");
+        }
+
+        // 6. Leere Ordner-Objekte für Organisation
+        CreateOrganizationGroup("--- Environment ---");
+        CreateOrganizationGroup("--- UI ---");
+        CreateOrganizationGroup("--- Audio ---");
+
+        // Status-Datei schreiben (für Pipeline)
+        string planDir = Path.Combine(Application.dataPath, "..", ".plan");
+        if (Directory.Exists(planDir))
+        {
+            string statusPath = Path.Combine(planDir, "bootstrap-status.json");
+            string json = "{\n" +
+                $"  \"status\": \"success\",\n" +
+                $"  \"objectsCreated\": {created},\n" +
+                $"  \"timestamp\": \"{System.DateTime.UtcNow:o}\"\n" +
+                "}";
+            File.WriteAllText(statusPath, json);
+        }
+
+        Debug.Log($"[SceneBootstrapper] Szene erfolgreich gebootstrappt! {created} Objekte erstellt.");
+    }
+
+    /// <summary>
+    /// Bootstrappt die Szene und speichert sie.
+    /// Für CLI: -executeMethod SceneBootstrapper.BootstrapAndSave
+    /// </summary>
+    public static void BootstrapAndSave()
+    {
+        BootstrapScene();
+        EditorSceneManager.SaveOpenScenes();
+        Debug.Log("[SceneBootstrapper] Szene gespeichert.");
+    }
+
+    /// <summary>
+    /// Erstellt eine neue, leere Szene und bootstrappt sie.
+    /// Für CLI: -executeMethod SceneBootstrapper.CreateAndBootstrap
+    /// </summary>
+    public static void CreateAndBootstrap()
+    {
+        EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
+        BootstrapScene();
+
+        string scenesPath = Path.Combine(Application.dataPath, "Scenes");
+        if (!Directory.Exists(scenesPath))
+            Directory.CreateDirectory(scenesPath);
+
+        string scenePath = "Assets/Scenes/GameScene.unity";
+        EditorSceneManager.SaveScene(
+            EditorSceneManager.GetActiveScene(), scenePath);
+
+        // Szene in Build Settings registrieren
+        var buildScenes = new System.Collections.Generic.List<EditorBuildSettingsScene>(
+            EditorBuildSettings.scenes);
+        bool alreadyAdded = buildScenes.Exists(s => s.path == scenePath);
+        if (!alreadyAdded)
+        {
+            buildScenes.Add(new EditorBuildSettingsScene(scenePath, true));
+            EditorBuildSettings.scenes = buildScenes.ToArray();
+            Debug.Log($"[SceneBootstrapper] Szene '{scenePath}' in Build Settings registriert.");
+        }
+
+        Debug.Log($"[SceneBootstrapper] Neue Szene erstellt und gespeichert: {scenePath}");
+    }
+
+    private static void CreateOrganizationGroup(string name)
+    {
+        if (GameObject.Find(name) != null) return;
+
+        var obj = new GameObject(name);
+        obj.transform.SetSiblingIndex(999); // Am Ende der Hierarchie
+        Undo.RegisterCreatedObjectUndo(obj, $"Create {name}");
+    }
+}

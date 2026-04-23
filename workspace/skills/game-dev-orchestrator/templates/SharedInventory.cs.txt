@@ -1,0 +1,233 @@
+using UnityEngine;
+using UnityEngine.Events;
+using System.Collections.Generic;
+using System.Linq;
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SHARED INVENTORY SYSTEM
+// ═══════════════════════════════════════════════════════════════════════════
+// Dieses Template enthält alle gemeinsam genutzten Inventar-Typen:
+//   - ItemData     → ScriptableObject für Item-Definitionen
+//   - ItemType     → Enum für Item-Kategorien
+//   - InventorySlot→ Slot-Container (Item + Menge)
+//   - InventorySystem → Vollständiges Inventar-Management
+//
+// DEPLOYMENT-REGEL:
+//   Wird von folgenden Templates benötigt:
+//   • templates/genres/rpg/InventorySystem.cs.txt (deprecated, nutze SharedInventory)
+//   • templates/genres/sandbox/CraftingSystem.cs.txt
+//
+//   Immer deployen wenn RPG ODER Sandbox Templates verwendet werden.
+//   Bei gemischten Genres (RPG + Sandbox): SharedInventory.cs.txt NUR EINMAL deployen.
+//
+// HINWEIS: Für reine RPG-Spiele ersetzt dieses Template die alte InventorySystem.cs.txt.
+// ═══════════════════════════════════════════════════════════════════════════
+
+/// <summary>
+/// Universelles Inventar-System für Unity-Spiele.
+/// Unterstützt Stacking, Events und flexible Slot-Größe.
+/// Geeignet für RPG, Sandbox und alle Genres mit Inventar-Mechanic.
+/// </summary>
+public class InventorySystem : MonoBehaviour
+{
+    [Header("Settings")]
+    [SerializeField] private int maxSlots = 20;
+
+    [Header("Events")]
+    public UnityEvent<ItemData, int> OnItemAdded;      // item, count
+    public UnityEvent<ItemData, int> OnItemRemoved;     // item, count
+    public UnityEvent OnInventoryChanged;
+
+    private List<InventorySlot> _slots = new List<InventorySlot>();
+
+    /// <summary>Alle Inventar-Slots (read-only View).</summary>
+    public IReadOnlyList<InventorySlot> Slots => _slots;
+
+    /// <summary>Anzahl belegter Slots.</summary>
+    public int UsedSlots => _slots.Count(s => !s.IsEmpty);
+
+    /// <summary>Anzahl freier Slots.</summary>
+    public int FreeSlots => maxSlots - UsedSlots;
+
+    /// <summary>Gesamtanzahl aller Slots.</summary>
+    public int MaxSlots => maxSlots;
+
+    private void Awake()
+    {
+        for (int i = 0; i < maxSlots; i++)
+            _slots.Add(new InventorySlot());
+    }
+
+    // ─── Item hinzufügen ─────────────────────────────────────────────────
+
+    /// <summary>
+    /// Fügt count Einheiten von item zum Inventar hinzu.
+    /// Füllt zuerst existierende Stacks auf, dann neue Slots.
+    /// Gibt zurück: Wie viele Einheiten NICHT hinzugefügt werden konnten (Inventar voll).
+    /// </summary>
+    public int AddItem(ItemData item, int count = 1)
+    {
+        if (item == null || count <= 0) return count;
+
+        int remaining = count;
+
+        // Zuerst: Existierende Stacks auffüllen
+        if (item.isStackable)
+        {
+            foreach (var slot in _slots)
+            {
+                if (slot.Item == item && slot.Count < item.maxStackSize)
+                {
+                    int canAdd = item.maxStackSize - slot.Count;
+                    int toAdd  = Mathf.Min(remaining, canAdd);
+                    slot.Count += toAdd;
+                    remaining  -= toAdd;
+                    if (remaining <= 0) break;
+                }
+            }
+        }
+
+        // Dann: Neue Slots belegen
+        while (remaining > 0)
+        {
+            var emptySlot = _slots.FirstOrDefault(s => s.IsEmpty);
+            if (emptySlot == null) break; // Inventar voll
+
+            int toAdd = item.isStackable
+                ? Mathf.Min(remaining, item.maxStackSize)
+                : 1;
+
+            emptySlot.Item  = item;
+            emptySlot.Count = toAdd;
+            remaining -= toAdd;
+        }
+
+        int added = count - remaining;
+        if (added > 0)
+        {
+            OnItemAdded?.Invoke(item, added);
+            OnInventoryChanged?.Invoke();
+        }
+
+        return remaining; // 0 = vollständig hinzugefügt
+    }
+
+    // ─── Item entfernen ──────────────────────────────────────────────────
+
+    /// <summary>
+    /// Entfernt count Einheiten von item aus dem Inventar.
+    /// Entfernt zuerst aus kleinsten Stacks (minimiert Slot-Fragmentierung).
+    /// Gibt true zurück wenn erfolgreich.
+    /// </summary>
+    public bool RemoveItem(ItemData item, int count = 1)
+    {
+        if (item == null || count <= 0) return false;
+        if (GetItemCount(item) < count) return false;
+
+        int remaining = count;
+
+        // Von kleinsten Stacks zuerst entfernen
+        var slotsWithItem = _slots
+            .Where(s => s.Item == item)
+            .OrderBy(s => s.Count)
+            .ToList();
+
+        foreach (var slot in slotsWithItem)
+        {
+            int toRemove = Mathf.Min(remaining, slot.Count);
+            slot.Count -= toRemove;
+            remaining  -= toRemove;
+
+            if (slot.Count <= 0)
+                slot.Clear();
+
+            if (remaining <= 0) break;
+        }
+
+        OnItemRemoved?.Invoke(item, count);
+        OnInventoryChanged?.Invoke();
+        return true;
+    }
+
+    // ─── Abfragen ────────────────────────────────────────────────────────
+
+    /// <summary>Gesamtanzahl eines bestimmten Items (alle Stacks summiert).</summary>
+    public int GetItemCount(ItemData item)
+        => _slots.Where(s => s.Item == item).Sum(s => s.Count);
+
+    /// <summary>Prüft ob mindestens count Einheiten von item vorhanden sind.</summary>
+    public bool HasItem(ItemData item, int count = 1)
+        => GetItemCount(item) >= count;
+
+    /// <summary>Leert das gesamte Inventar.</summary>
+    public void ClearInventory()
+    {
+        foreach (var slot in _slots)
+            slot.Clear();
+        OnInventoryChanged?.Invoke();
+    }
+}
+
+// ─── Daten-Typen ─────────────────────────────────────────────────────────
+
+/// <summary>
+/// Ein Slot im Inventar. Enthält ein Item und eine Menge.
+/// </summary>
+[System.Serializable]
+public class InventorySlot
+{
+    public ItemData Item  { get; set; }
+    public int      Count { get; set; }
+
+    public bool IsEmpty => Item == null || Count <= 0;
+
+    public void Clear()
+    {
+        Item  = null;
+        Count = 0;
+    }
+}
+
+/// <summary>
+/// ScriptableObject-Basis für alle Item-Definitionen.
+/// Erstelle im Unity Editor: Assets → Create → Game → Item
+/// </summary>
+[CreateAssetMenu(fileName = "NewItem", menuName = "Game/Item")]
+public class ItemData : ScriptableObject
+{
+    [Header("Basis-Informationen")]
+    public string itemName;
+    [TextArea(2, 4)]
+    public string description;
+    public Sprite icon;
+
+    [Header("Stacking")]
+    public bool isStackable   = true;
+    public int  maxStackSize  = 99;
+
+    [Header("Eigenschaften")]
+    public ItemType itemType;
+    public int   value;  // Kauf-/Verkaufswert in Spielwährung
+    public float weight;
+
+    [Header("Verbrauchseigenschaften")]
+    public bool isConsumable;
+    public int  healAmount;   // HP-Heilung beim Verbrauch (0 = keine)
+    public int  manaAmount;   // Mana-Wiederherstellung (0 = keine)
+}
+
+/// <summary>
+/// Kategorien für ItemData.
+/// Erweiterbar durch partielle Klassen oder ein komplett eigenes Enum im Genre-Script.
+/// </summary>
+public enum ItemType
+{
+    Consumable,     // Tränke, Essen, Buffs
+    Equipment,      // Rüstung, Zubehör
+    Weapon,         // Nahkampf, Fernkampf, Zauber
+    Armor,          // Kopf, Brust, Beine, Füße
+    Material,       // Crafting-Ressourcen (Erz, Holz, Stoff)
+    QuestItem,      // Nicht droppbar, nicht verkaufbar
+    Key,            // Schlüssel für Türen / Bereiche
+    Misc            // Sonstiges (Dekorative Items, etc.)
+}

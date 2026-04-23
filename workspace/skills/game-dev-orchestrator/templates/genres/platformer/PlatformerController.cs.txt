@@ -1,0 +1,249 @@
+using UnityEngine;
+
+/// <summary>
+/// 2D Platformer Character Controller.
+/// Unterstützt Laufen, Springen, Wandspringen und Coyote-Time.
+/// </summary>
+[RequireComponent(typeof(Rigidbody2D))]
+[RequireComponent(typeof(BoxCollider2D))]
+public class PlatformerController : MonoBehaviour
+{
+    [Header("Movement")]
+    [SerializeField] private float moveSpeed = 8f;
+    [SerializeField] private float acceleration = 50f;
+    [SerializeField] private float deceleration = 50f;
+    [SerializeField] private float airControlMultiplier = 0.65f;
+
+    [Header("Jumping")]
+    [SerializeField] private float jumpForce = 14f;
+    [SerializeField] private float fallMultiplier = 2.5f;
+    [SerializeField] private float lowJumpMultiplier = 2f;
+    [SerializeField] private int maxExtraJumps = 1;
+
+    [Header("Coyote Time & Jump Buffer")]
+    [SerializeField] private float coyoteTime = 0.12f;
+    [SerializeField] private float jumpBufferTime = 0.15f;
+
+    [Header("Wall Jump")]
+    [SerializeField] private bool enableWallJump = true;
+    [SerializeField] private float wallSlideSpeed = 2f;
+    [SerializeField] private Vector2 wallJumpForce = new Vector2(12f, 14f);
+    [SerializeField] private float wallJumpLockTime = 0.2f;
+
+    [Header("Ground Check")]
+    [SerializeField] private Transform groundCheckPoint;
+    [SerializeField] private Vector2 groundCheckSize = new Vector2(0.8f, 0.1f);
+    [SerializeField] private LayerMask groundLayer;
+
+    [Header("Wall Check")]
+    [SerializeField] private Transform wallCheckPoint;
+    [SerializeField] private Vector2 wallCheckSize = new Vector2(0.1f, 0.8f);
+    [SerializeField] private LayerMask wallLayer;
+
+    private Rigidbody2D _rb;
+    private int _extraJumpsRemaining;
+    private float _coyoteTimeCounter;
+    private float _jumpBufferCounter;
+    private float _wallJumpLockCounter;
+    private bool _isWallSliding;
+    private int _facingDirection = 1;
+
+    /// <summary>Ob der Charakter auf dem Boden steht</summary>
+    public bool IsGrounded { get; private set; }
+
+    /// <summary>Ob der Charakter an einer Wand klebt</summary>
+    public bool IsWallSliding => _isWallSliding;
+
+    /// <summary>Ob der Charakter nach rechts schaut</summary>
+    public bool IsFacingRight => _facingDirection == 1;
+
+    /// <summary>Aktuelle horizontale Eingabe</summary>
+    public float HorizontalInput { get; private set; }
+
+    private void Awake()
+    {
+        _rb = GetComponent<Rigidbody2D>();
+        _rb.freezeRotation = true;
+    }
+
+    private void Update()
+    {
+        HorizontalInput = Input.GetAxisRaw("Horizontal");
+
+        CheckGround();
+        CheckWall();
+        HandleCoyoteTime();
+        HandleJumpBuffer();
+        HandleJumpInput();
+        HandleFacing();
+    }
+
+    private void FixedUpdate()
+    {
+        HandleMovement();
+        HandleWallSlide();
+        ApplyGravityModifiers();
+    }
+
+    // --- Ground & Wall ---
+    private void CheckGround()
+    {
+        if (groundCheckPoint == null) return;
+        IsGrounded = Physics2D.OverlapBox(
+            groundCheckPoint.position, groundCheckSize, 0f, groundLayer);
+
+        if (IsGrounded)
+        {
+            _extraJumpsRemaining = maxExtraJumps;
+        }
+    }
+
+    private void CheckWall()
+    {
+        if (!enableWallJump || wallCheckPoint == null) return;
+        bool touchingWall = Physics2D.OverlapBox(
+            wallCheckPoint.position, wallCheckSize, 0f, wallLayer);
+        _isWallSliding = touchingWall && !IsGrounded && HorizontalInput != 0f;
+    }
+
+    // --- Movement ---
+    private void HandleMovement()
+    {
+        if (_wallJumpLockCounter > 0f)
+        {
+            _wallJumpLockCounter -= Time.fixedDeltaTime;
+            return;
+        }
+
+        float targetSpeed = HorizontalInput * moveSpeed;
+        float accelRate = Mathf.Abs(targetSpeed) > 0.01f ? acceleration : deceleration;
+
+        if (!IsGrounded)
+            accelRate *= airControlMultiplier;
+
+        float speedDiff = targetSpeed - _rb.linearVelocity.x;
+        float movement = speedDiff * accelRate * Time.fixedDeltaTime;
+
+        _rb.AddForce(Vector2.right * movement, ForceMode2D.Impulse);
+    }
+
+    // --- Jump ---
+    private void HandleCoyoteTime()
+    {
+        if (IsGrounded)
+            _coyoteTimeCounter = coyoteTime;
+        else
+            _coyoteTimeCounter -= Time.deltaTime;
+    }
+
+    private void HandleJumpBuffer()
+    {
+        if (Input.GetButtonDown("Jump"))
+            _jumpBufferCounter = jumpBufferTime;
+        else
+            _jumpBufferCounter -= Time.deltaTime;
+    }
+
+    private void HandleJumpInput()
+    {
+        if (_jumpBufferCounter <= 0f) return;
+
+        // Normaler Sprung (mit Coyote Time)
+        if (_coyoteTimeCounter > 0f)
+        {
+            Jump(jumpForce);
+            _coyoteTimeCounter = 0f;
+            _jumpBufferCounter = 0f;
+            return;
+        }
+
+        // Wall Jump
+        if (_isWallSliding && enableWallJump)
+        {
+            WallJump();
+            _jumpBufferCounter = 0f;
+            return;
+        }
+
+        // Extra Jump (Double Jump etc.)
+        if (_extraJumpsRemaining > 0)
+        {
+            Jump(jumpForce);
+            _extraJumpsRemaining--;
+            _jumpBufferCounter = 0f;
+        }
+    }
+
+    private void Jump(float force)
+    {
+        _rb.linearVelocity = new Vector2(_rb.linearVelocity.x, 0f);
+        _rb.AddForce(Vector2.up * force, ForceMode2D.Impulse);
+    }
+
+    private void WallJump()
+    {
+        _isWallSliding = false;
+        _wallJumpLockCounter = wallJumpLockTime;
+
+        Vector2 jumpDir = new Vector2(-_facingDirection * wallJumpForce.x, wallJumpForce.y);
+        _rb.linearVelocity = Vector2.zero;
+        _rb.AddForce(jumpDir, ForceMode2D.Impulse);
+
+        FlipDirection();
+    }
+
+    // --- Wall Slide ---
+    private void HandleWallSlide()
+    {
+        if (_isWallSliding)
+        {
+            if (_rb.linearVelocity.y < -wallSlideSpeed)
+            {
+                _rb.linearVelocity = new Vector2(_rb.linearVelocity.x, -wallSlideSpeed);
+            }
+        }
+    }
+
+    // --- Gravity ---
+    private void ApplyGravityModifiers()
+    {
+        if (_rb.linearVelocity.y < 0f)
+        {
+            _rb.linearVelocity += Vector2.up * Physics2D.gravity.y * (fallMultiplier - 1f) * Time.fixedDeltaTime;
+        }
+        else if (_rb.linearVelocity.y > 0f && !Input.GetButton("Jump"))
+        {
+            _rb.linearVelocity += Vector2.up * Physics2D.gravity.y * (lowJumpMultiplier - 1f) * Time.fixedDeltaTime;
+        }
+    }
+
+    // --- Facing ---
+    private void HandleFacing()
+    {
+        if (HorizontalInput > 0f && _facingDirection != 1)
+            FlipDirection();
+        else if (HorizontalInput < 0f && _facingDirection != -1)
+            FlipDirection();
+    }
+
+    private void FlipDirection()
+    {
+        _facingDirection *= -1;
+        transform.localScale = new Vector3(
+            Mathf.Abs(transform.localScale.x) * _facingDirection,
+            transform.localScale.y,
+            transform.localScale.z
+        );
+    }
+
+    private void OnDrawGizmosSelected()
+    {
+        Gizmos.color = Color.green;
+        if (groundCheckPoint != null)
+            Gizmos.DrawWireCube(groundCheckPoint.position, groundCheckSize);
+
+        Gizmos.color = Color.cyan;
+        if (wallCheckPoint != null)
+            Gizmos.DrawWireCube(wallCheckPoint.position, wallCheckSize);
+    }
+}

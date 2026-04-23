@@ -1,0 +1,183 @@
+using UnityEngine;
+
+/// <summary>
+/// RPG Third-Person Character Controller.
+/// Unterstützt freie Bewegung, Sprint, Interaktion und Kamera-relative Steuerung.
+/// </summary>
+[RequireComponent(typeof(CharacterController))]
+public class RPGCharacterController : MonoBehaviour
+{
+    [Header("Movement")]
+    [SerializeField] private float walkSpeed = 4f;
+    [SerializeField] private float runSpeed = 7f;
+    [SerializeField] private float rotationSmoothTime = 0.12f;
+    [SerializeField] private float speedChangeRate = 10f;
+
+    [Header("Gravity & Jump")]
+    [SerializeField] private float gravity = -15f;
+    [SerializeField] private float jumpHeight = 1.2f;
+    [SerializeField] private float groundedGravity = -2f;
+
+    [Header("Ground Check")]
+    [SerializeField] private float groundCheckOffset = -0.14f;
+    [SerializeField] private float groundCheckRadius = 0.28f;
+    [SerializeField] private LayerMask groundLayers;
+
+    [Header("Camera")]
+    [SerializeField] private Transform cameraTransform;
+
+    private CharacterController _controller;
+    private float _speed;
+    private float _targetRotation;
+    private float _rotationVelocity;
+    private float _verticalVelocity;
+    private bool _isGrounded;
+
+    /// <summary>Ob der Charakter sich bewegt</summary>
+    public bool IsMoving => _speed > 0.1f;
+
+    /// <summary>Ob der Charakter rennt</summary>
+    public bool IsRunning { get; private set; }
+
+    /// <summary>Ob der Charakter am Boden ist</summary>
+    public bool IsGrounded => _isGrounded;
+
+    /// <summary>Aktuelle Geschwindigkeit normalisiert (0-1)</summary>
+    public float SpeedNormalized => _speed / runSpeed;
+
+    /// <summary>Event: Interaktion ausgelöst</summary>
+    public System.Action OnInteract;
+
+    private void Awake()
+    {
+        _controller = GetComponent<CharacterController>();
+
+        if (cameraTransform == null && Camera.main != null)
+            cameraTransform = Camera.main.transform;
+    }
+
+    private void Update()
+    {
+        GroundCheck();
+        HandleGravity();
+        HandleMovement();
+        HandleJump();
+        HandleInteraction();
+    }
+
+    private void GroundCheck()
+    {
+        Vector3 spherePos = new Vector3(
+            transform.position.x,
+            transform.position.y - groundCheckOffset,
+            transform.position.z
+        );
+        _isGrounded = Physics.CheckSphere(spherePos, groundCheckRadius, groundLayers,
+            QueryTriggerInteraction.Ignore);
+    }
+
+    private void HandleGravity()
+    {
+        if (_isGrounded)
+        {
+            if (_verticalVelocity < 0f)
+                _verticalVelocity = groundedGravity;
+        }
+        else
+        {
+            _verticalVelocity += gravity * Time.deltaTime;
+        }
+    }
+
+    private void HandleMovement()
+    {
+        IsRunning = Input.GetKey(KeyCode.LeftShift);
+        float targetSpeed = IsRunning ? runSpeed : walkSpeed;
+
+        Vector2 input = new Vector2(
+            Input.GetAxisRaw("Horizontal"),
+            Input.GetAxisRaw("Vertical")
+        );
+
+        if (input == Vector2.zero) targetSpeed = 0f;
+
+        float currentHSpeed = new Vector3(
+            _controller.velocity.x, 0f, _controller.velocity.z).magnitude;
+
+        _speed = Mathf.Lerp(currentHSpeed, targetSpeed,
+            Time.deltaTime * speedChangeRate);
+
+        if (_speed < 0.01f) _speed = 0f;
+
+        // Rotation zur Kamera-Richtung
+        if (input != Vector2.zero)
+        {
+            _targetRotation = Mathf.Atan2(input.x, input.y) * Mathf.Rad2Deg;
+
+            if (cameraTransform != null)
+                _targetRotation += cameraTransform.eulerAngles.y;
+
+            float rotation = Mathf.SmoothDampAngle(
+                transform.eulerAngles.y, _targetRotation,
+                ref _rotationVelocity, rotationSmoothTime);
+
+            transform.rotation = Quaternion.Euler(0f, rotation, 0f);
+        }
+
+        Vector3 targetDirection = Quaternion.Euler(0f, _targetRotation, 0f) * Vector3.forward;
+        Vector3 moveVector = targetDirection.normalized * _speed + Vector3.up * _verticalVelocity;
+
+        _controller.Move(moveVector * Time.deltaTime);
+    }
+
+    private void HandleJump()
+    {
+        if (Input.GetButtonDown("Jump") && _isGrounded)
+        {
+            _verticalVelocity = Mathf.Sqrt(jumpHeight * -2f * gravity);
+        }
+    }
+
+    private void HandleInteraction()
+    {
+        if (Input.GetKeyDown(KeyCode.E))
+        {
+            OnInteract?.Invoke();
+            TryInteract();
+        }
+    }
+
+    private void TryInteract()
+    {
+        // Raycast nach vorne für Interaktions-Erkennung
+        RaycastHit hit;
+        if (Physics.Raycast(transform.position + Vector3.up * 1f,
+            transform.forward, out hit, 2.5f))
+        {
+            var interactable = hit.collider.GetComponent<IInteractable>();
+            interactable?.Interact(gameObject);
+        }
+    }
+
+    private void OnDrawGizmosSelected()
+    {
+        Gizmos.color = Color.yellow;
+        Vector3 spherePos = new Vector3(
+            transform.position.x,
+            transform.position.y - groundCheckOffset,
+            transform.position.z
+        );
+        Gizmos.DrawWireSphere(spherePos, groundCheckRadius);
+
+        // Interaktions-Raycast
+        Gizmos.color = Color.blue;
+        Gizmos.DrawRay(transform.position + Vector3.up, transform.forward * 2.5f);
+    }
+}
+
+/// <summary>Interface für interagierbare Objekte in der Spielwelt.</summary>
+public interface IInteractable
+{
+    string InteractionPrompt { get; }
+    void Interact(GameObject interactor);
+}

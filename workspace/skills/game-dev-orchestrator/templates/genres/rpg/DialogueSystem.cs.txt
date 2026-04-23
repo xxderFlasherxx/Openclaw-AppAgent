@@ -1,0 +1,192 @@
+using UnityEngine;
+using UnityEngine.Events;
+using System.Collections.Generic;
+
+/// <summary>
+/// Einfaches Dialog-System für RPGs.
+/// Unterstützt lineare Dialoge und Auswahlmöglichkeiten.
+/// </summary>
+public class DialogueSystem : Singleton<DialogueSystem>
+{
+    [Header("Settings")]
+    [SerializeField] private float typingSpeed = 0.03f;
+    [SerializeField] private KeyCode advanceKey = KeyCode.Space;
+    [SerializeField] private KeyCode skipKey = KeyCode.Return;
+
+    /// <summary>Ob gerade ein Dialog aktiv ist</summary>
+    public bool IsDialogueActive { get; private set; }
+
+    /// <summary>Aktueller Dialogtext</summary>
+    public string CurrentText { get; private set; }
+
+    /// <summary>Name des aktuellen Sprechers</summary>
+    public string CurrentSpeaker { get; private set; }
+
+    /// <summary>Aktuelle Auswahlmöglichkeiten (leer wenn keine)</summary>
+    public List<DialogueChoice> CurrentChoices { get; private set; } = new List<DialogueChoice>();
+
+    // Events
+    public UnityEvent OnDialogueStarted;
+    public UnityEvent OnDialogueEnded;
+    public UnityEvent<string, string> OnLineDisplayed; // speaker, text
+    public UnityEvent<List<DialogueChoice>> OnChoicesDisplayed;
+
+    private DialogueData _currentDialogue;
+    private int _currentLineIndex;
+    private bool _isTyping;
+    private string _fullText;
+    private float _typingTimer;
+    private int _charIndex;
+
+    /// <summary>Startet einen Dialog.</summary>
+    public void StartDialogue(DialogueData dialogue)
+    {
+        if (dialogue == null || dialogue.lines.Count == 0) return;
+
+        _currentDialogue = dialogue;
+        _currentLineIndex = 0;
+        IsDialogueActive = true;
+
+        OnDialogueStarted?.Invoke();
+        DisplayCurrentLine();
+    }
+
+    /// <summary>Geht zum nächsten Dialog-Element.</summary>
+    public void Advance()
+    {
+        if (!IsDialogueActive) return;
+
+        if (_isTyping)
+        {
+            // Text sofort vollständig anzeigen
+            CurrentText = _fullText;
+            _isTyping = false;
+            OnLineDisplayed?.Invoke(CurrentSpeaker, CurrentText);
+            return;
+        }
+
+        _currentLineIndex++;
+
+        if (_currentLineIndex >= _currentDialogue.lines.Count)
+        {
+            EndDialogue();
+            return;
+        }
+
+        DisplayCurrentLine();
+    }
+
+    /// <summary>Wählt eine Antwort-Option aus.</summary>
+    public void SelectChoice(int index)
+    {
+        if (index < 0 || index >= CurrentChoices.Count) return;
+
+        var choice = CurrentChoices[index];
+        CurrentChoices.Clear();
+
+        if (choice.nextDialogue != null)
+        {
+            StartDialogue(choice.nextDialogue);
+        }
+        else
+        {
+            EndDialogue();
+        }
+    }
+
+    private void EndDialogue()
+    {
+        IsDialogueActive = false;
+        CurrentText = "";
+        CurrentSpeaker = "";
+        CurrentChoices.Clear();
+        _currentDialogue = null;
+
+        OnDialogueEnded?.Invoke();
+    }
+
+    private void DisplayCurrentLine()
+    {
+        var line = _currentDialogue.lines[_currentLineIndex];
+
+        CurrentSpeaker = line.speaker;
+        _fullText = line.text;
+        CurrentText = "";
+        _charIndex = 0;
+        _isTyping = true;
+        _typingTimer = 0f;
+
+        // Auswahlmöglichkeiten prüfen
+        if (line.choices != null && line.choices.Count > 0)
+        {
+            CurrentChoices = new List<DialogueChoice>(line.choices);
+        }
+        else
+        {
+            CurrentChoices.Clear();
+        }
+    }
+
+    private void Update()
+    {
+        if (!IsDialogueActive) return;
+
+        // Typing-Effekt
+        if (_isTyping)
+        {
+            _typingTimer += Time.unscaledDeltaTime;
+            while (_typingTimer >= typingSpeed && _charIndex < _fullText.Length)
+            {
+                _typingTimer -= typingSpeed;
+                _charIndex++;
+                CurrentText = _fullText.Substring(0, _charIndex);
+            }
+
+            if (_charIndex >= _fullText.Length)
+            {
+                _isTyping = false;
+                OnLineDisplayed?.Invoke(CurrentSpeaker, CurrentText);
+
+                if (CurrentChoices.Count > 0)
+                {
+                    OnChoicesDisplayed?.Invoke(CurrentChoices);
+                }
+            }
+        }
+
+        // Input
+        if (Input.GetKeyDown(advanceKey) || Input.GetKeyDown(skipKey))
+        {
+            if (CurrentChoices.Count == 0)
+            {
+                Advance();
+            }
+        }
+    }
+}
+
+/// <summary>Daten für einen kompletten Dialog.</summary>
+[System.Serializable]
+public class DialogueData
+{
+    public string dialogueId;
+    public List<DialogueLine> lines = new List<DialogueLine>();
+}
+
+/// <summary>Eine einzelne Dialog-Zeile.</summary>
+[System.Serializable]
+public class DialogueLine
+{
+    public string speaker;
+    [TextArea(2, 5)]
+    public string text;
+    public List<DialogueChoice> choices;
+}
+
+/// <summary>Eine Auswahlmöglichkeit im Dialog.</summary>
+[System.Serializable]
+public class DialogueChoice
+{
+    public string text;
+    public DialogueData nextDialogue;
+}

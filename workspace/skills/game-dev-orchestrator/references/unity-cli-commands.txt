@@ -1,0 +1,182 @@
+UNITY COMMAND LINE REFERENZ (Linux / Cross-Platform)
+=====================================================
+
+UNITY BINARY PFADE
+-------------------
+
+Linux:
+  /opt/unity/Editor/Unity
+  ~/Unity/Hub/Editor/[VERSION]/Editor/Unity
+
+macOS:
+  /Applications/Unity/Hub/Editor/[VERSION]/Unity.app/Contents/MacOS/Unity
+
+Windows:
+  "C:\Program Files\Unity\Hub\Editor\[VERSION]\Editor\Unity.exe"
+
+Der tatsächliche Pfad ist in gamedev-config.json unter paths.unityEditor konfiguriert.
+Falls leer: Unity muss im PATH sein oder der Pfad muss manuell gesetzt werden.
+
+
+GRUNDLEGENDE BEFEHLE
+--------------------
+
+1. NEUES PROJEKT ERSTELLEN:
+   Unity -createProject [pfad] -quit -batchmode -nographics
+
+   Beispiel:
+   Unity -createProject ~/GameDev-Projekte/MeinSpiel -quit -batchmode -nographics
+
+   Hinweis: Erstellt ein leeres Unity-Projekt mit Standard-Einstellungen.
+   Die Ordnerstruktur (Assets/Scripts etc.) muss danach manuell erstellt werden.
+
+
+2. PROJEKT ÖFFNEN (mit UI):
+   Unity -projectPath [pfad]
+
+   Beispiel:
+   Unity -projectPath ~/GameDev-Projekte/MeinSpiel
+
+
+3. BUILD ERSTELLEN:
+   Unity -batchmode -projectPath [pfad] \
+     -executeMethod AutoBuilder.Build \
+     -quit -logFile .plan/build.log
+
+   Für Linux-Build:
+   Unity -batchmode -projectPath [pfad] \
+     -executeMethod AutoBuilder.BuildLinux \
+     -quit -logFile .plan/build.log
+
+   Für WebGL:
+   Unity -batchmode -projectPath [pfad] \
+     -executeMethod AutoBuilder.BuildWebGL \
+     -quit -logFile .plan/build.log
+
+
+4. SZENE BOOTSTRAPPEN:
+   Unity -batchmode -projectPath [pfad] \
+     -executeMethod SceneBootstrapper.BootstrapAndSave \
+     -quit -logFile .plan/bootstrap.log
+
+
+5. KOMPONENTEN AUTOMATISCH ZUWEISEN:
+   Unity -batchmode -projectPath [pfad] \
+     -executeMethod AutoComponentAssigner.AssignComponents \
+     -quit -logFile .plan/assign.log
+
+
+6. SZENE VALIDIEREN:
+   Unity -batchmode -projectPath [pfad] \
+     -executeMethod AutoComponentAssigner.ValidateScene \
+     -quit -logFile .plan/validate.log
+
+
+7. TESTS AUSFÜHREN:
+   Unity -batchmode -projectPath [pfad] \
+     -runTests -testResults .plan/test-results.xml \
+     -quit
+
+   Nur Edit-Mode Tests:
+   Unity -batchmode -projectPath [pfad] \
+     -runTests -testPlatform EditMode \
+     -testResults .plan/test-results.xml \
+     -quit
+
+
+8. PACKAGE IMPORTIEREN:
+   Unity -batchmode -projectPath [pfad] \
+     -importPackage [package.unitypackage] \
+     -quit
+
+
+9. ASSET DATABASE REFRESH:
+   Unity -batchmode -projectPath [pfad] \
+     -executeMethod UnityEditor.AssetDatabase.Refresh \
+     -quit
+
+
+WICHTIGE FLAGS
+--------------
+
+-batchmode        Headless-Modus, kein UI. Pflicht für Automation.
+-quit             Nach Ausführung automatisch beenden.
+-logFile [pfad]   Log-Ausgabe in Datei schreiben (statt stdout).
+-nographics       Ohne GPU/Grafik starten (für Server/CI).
+-projectPath [p]  Unity-Projektordner angeben.
+-executeMethod [m] Eine statische C# Methode ausführen.
+-buildTarget [t]  Build-Target setzen (StandaloneLinux64, StandaloneWindows64, WebGL etc.)
+-accept-apiupdate API-Updates automatisch akzeptieren.
+-disable-assembly-updater  Assembly-Updater deaktivieren.
+-noUpm            Unity Package Manager deaktivieren (schnellerer Start).
+
+
+RETURN CODES
+------------
+
+0   = Erfolgreich
+1   = Build/Test fehlgeschlagen
+2   = Ungültige Argumente
+>0  = Allgemeiner Fehler
+
+Hans kann den Return-Code prüfen mit: echo $?
+
+
+PIPELINE-INTEGRATION (für Hans/OpenClaw)
+-----------------------------------------
+
+Der Standard-Workflow für einen Build sieht so aus:
+
+1. Projekt erstellen (falls neu):
+   Unity -createProject [pfad] -quit -batchmode -nographics
+
+2. Ordnerstruktur erstellen:
+   mkdir -p [pfad]/Assets/Scripts/{Core,Player,Camera,UI,Environment,AI,Utilities}
+   mkdir -p [pfad]/Assets/{Prefabs,Materials,Textures,Scenes,Audio,Animations,Shaders,Editor,Resources}
+   mkdir -p [pfad]/Assets/Audio/{Music,SFX}
+   mkdir -p [pfad]/.plan
+
+3. Editor-Scripts kopieren:
+   cp templates/editor/*.cs.txt → [pfad]/Assets/Editor/*.cs (ohne .txt)
+   cp templates/AutoCompileWatcher.cs.txt → [pfad]/Assets/Editor/AutoCompileWatcher.cs
+
+4. Basis-Scripts kopieren:
+   cp templates/Singleton.cs.txt → [pfad]/Assets/Scripts/Utilities/Singleton.cs
+   cp templates/base-game-manager.cs.txt → [pfad]/Assets/Scripts/Core/GameManager.cs
+   etc.
+
+5. Szene bootstrappen:
+   Unity -batchmode -projectPath [pfad] -executeMethod SceneBootstrapper.CreateAndBootstrap -quit
+
+6. Code generieren lassen (via Copilot):
+   → Prompts kommen von Günther, werden vom Copilot umgesetzt
+
+7. Kompilierung prüfen:
+   → .plan/unity-status.json auslesen (geschrieben von AutoCompileWatcher)
+
+8. Build erstellen:
+   Unity -batchmode -projectPath [pfad] -executeMethod AutoBuilder.Build -quit
+   → .plan/build-status.json auslesen
+
+9. Ergebnis melden:
+   → Status an User via Telegram senden
+
+
+TROUBLESHOOTING
+---------------
+
+Problem: "Unity is already running"
+Lösung:  Prüfe ob ein Unity-Prozess läuft: pgrep -f Unity
+         Wenn ja: kill $(pgrep -f Unity) und warten.
+
+Problem: "-batchmode" startet aber wird nie fertig
+Lösung:  Timeout setzen: timeout 300 Unity -batchmode ...
+         Log prüfen: tail -f .plan/build.log
+
+Problem: "No valid Unity license"
+Lösung:  Unity muss mindestens einmal interaktiv gestartet werden
+         um die Lizenz zu aktivieren.
+
+Problem: Build schlägt fehl mit "No scenes found"
+Lösung:  Szenen müssen in EditorBuildSettings.scenes registriert sein.
+         SceneBootstrapper.CreateAndBootstrap macht das automatisch.

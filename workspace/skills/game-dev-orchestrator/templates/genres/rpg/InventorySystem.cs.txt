@@ -1,0 +1,20 @@
+// ═══════════════════════════════════════════════════════════════════════════
+// DEPRECATED: Diese Datei wurde nach templates/SharedInventory.cs.txt verschoben.
+// ═══════════════════════════════════════════════════════════════════════════
+//
+// InventorySystem, InventorySlot, ItemData und ItemType sind jetzt definiert in:
+//   templates/SharedInventory.cs.txt
+//
+// WARUM diese Aufteilung:
+//   CraftingSystem.cs.txt (Sandbox-Genre) benötigt dieselben ItemData/InventorySystem-
+//   Typen. Doppelte Definitionen würden CS0101-Compiler-Fehler erzeugen.
+//   Die gemeinsamen Typen wurden deshalb in SharedInventory.cs.txt extrahiert.
+//
+// MIGRATION:
+//   - Statt dieser Datei: templates/SharedInventory.cs.txt deployen
+//   - Für reine RPG-Spiele: SharedInventory.cs.txt reicht vollständig aus
+//   - Für RPG + Sandbox: SharedInventory.cs.txt nur EINMAL deployen (nicht beide!)
+//
+// Hans (OpenClaw) deployt diese veraltete Datei NICHT mehr in neue Projekte.
+// Sie bleibt nur als Referenz erhalten.
+// ═══════════════════════════════════════════════════════════════════════════

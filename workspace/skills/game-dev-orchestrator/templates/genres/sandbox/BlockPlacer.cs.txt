@@ -1,0 +1,216 @@
+using UnityEngine;
+
+/// <summary>
+/// Block-Platzierungs-System für Sandbox-Spiele.
+/// Erlaubt das Platzieren und Entfernen von Blöcken in einem Raster.
+/// </summary>
+public class BlockPlacer : MonoBehaviour
+{
+    [Header("Settings")]
+    [SerializeField] private float placeDistance = 6f;
+    [SerializeField] private float gridSize = 1f;
+    [SerializeField] private LayerMask placeableLayers;
+
+    [Header("Block Selection")]
+    [SerializeField] private GameObject[] blockPrefabs;
+    [SerializeField] private int selectedBlockIndex = 0;
+
+    [Header("Preview")]
+    [SerializeField] private Material previewMaterial;
+    [SerializeField] private Color validColor = new Color(0f, 1f, 0f, 0.4f);
+    [SerializeField] private Color invalidColor = new Color(1f, 0f, 0f, 0.4f);
+
+    [Header("References")]
+    [SerializeField] private Transform cameraTransform;
+
+    private GameObject _previewBlock;
+    private bool _canPlace;
+    private Vector3 _placePosition;
+
+    /// <summary>Aktuell ausgewählter Block-Index</summary>
+    public int SelectedBlock => selectedBlockIndex;
+
+    /// <summary>Verfügbare Block-Typen</summary>
+    public int BlockTypeCount => blockPrefabs != null ? blockPrefabs.Length : 0;
+
+    private void Start()
+    {
+        if (cameraTransform == null && Camera.main != null)
+            cameraTransform = Camera.main.transform;
+
+        CreatePreview();
+    }
+
+    private void Update()
+    {
+        HandleBlockSelection();
+        UpdatePreview();
+        HandlePlacement();
+        HandleRemoval();
+    }
+
+    private void HandleBlockSelection()
+    {
+        if (blockPrefabs == null || blockPrefabs.Length == 0) return;
+
+        // Mausrad zum Wechseln
+        float scroll = Input.GetAxis("Mouse ScrollWheel");
+        if (scroll > 0f)
+        {
+            selectedBlockIndex = (selectedBlockIndex + 1) % blockPrefabs.Length;
+            CreatePreview();
+        }
+        else if (scroll < 0f)
+        {
+            selectedBlockIndex--;
+            if (selectedBlockIndex < 0) selectedBlockIndex = blockPrefabs.Length - 1;
+            CreatePreview();
+        }
+
+        // Zahlentasten 1-9
+        for (int i = 0; i < Mathf.Min(9, blockPrefabs.Length); i++)
+        {
+            if (Input.GetKeyDown(KeyCode.Alpha1 + i))
+            {
+                selectedBlockIndex = i;
+                CreatePreview();
+            }
+        }
+    }
+
+    private void UpdatePreview()
+    {
+        if (cameraTransform == null || _previewBlock == null) return;
+
+        Ray ray = new Ray(cameraTransform.position, cameraTransform.forward);
+        RaycastHit hit;
+
+        if (Physics.Raycast(ray, out hit, placeDistance, placeableLayers))
+        {
+            _canPlace = true;
+            _placePosition = SnapToGrid(hit.point + hit.normal * (gridSize * 0.5f));
+
+            _previewBlock.SetActive(true);
+            _previewBlock.transform.position = _placePosition;
+
+            // Kollisionsprüfung
+            Collider[] overlaps = Physics.OverlapBox(
+                _placePosition,
+                Vector3.one * (gridSize * 0.45f),
+                Quaternion.identity,
+                placeableLayers
+            );
+
+            _canPlace = overlaps.Length == 0;
+            SetPreviewColor(_canPlace ? validColor : invalidColor);
+        }
+        else
+        {
+            _canPlace = false;
+            _previewBlock.SetActive(false);
+        }
+    }
+
+    private void HandlePlacement()
+    {
+        if (Input.GetMouseButtonDown(0) && _canPlace)
+        {
+            PlaceBlock(_placePosition);
+        }
+    }
+
+    private void HandleRemoval()
+    {
+        if (Input.GetMouseButtonDown(1))
+        {
+            Ray ray = new Ray(cameraTransform.position, cameraTransform.forward);
+            RaycastHit hit;
+
+            if (Physics.Raycast(ray, out hit, placeDistance, placeableLayers))
+            {
+                var block = hit.collider.GetComponent<PlaceableBlock>();
+                if (block != null)
+                {
+                    Destroy(hit.collider.gameObject);
+                }
+            }
+        }
+    }
+
+    /// <summary>Platziert einen Block an der angegebenen Position.</summary>
+    public void PlaceBlock(Vector3 position)
+    {
+        if (blockPrefabs == null || selectedBlockIndex >= blockPrefabs.Length) return;
+
+        var prefab = blockPrefabs[selectedBlockIndex];
+        if (prefab == null) return;
+
+        Vector3 snapped = SnapToGrid(position);
+        var block = Instantiate(prefab, snapped, Quaternion.identity);
+
+        // PlaceableBlock-Komponente sicherstellen
+        if (block.GetComponent<PlaceableBlock>() == null)
+        {
+            block.AddComponent<PlaceableBlock>();
+        }
+    }
+
+    private Vector3 SnapToGrid(Vector3 position)
+    {
+        return new Vector3(
+            Mathf.Round(position.x / gridSize) * gridSize,
+            Mathf.Round(position.y / gridSize) * gridSize,
+            Mathf.Round(position.z / gridSize) * gridSize
+        );
+    }
+
+    private void CreatePreview()
+    {
+        if (_previewBlock != null)
+            Destroy(_previewBlock);
+
+        if (blockPrefabs == null || selectedBlockIndex >= blockPrefabs.Length) return;
+
+        _previewBlock = Instantiate(blockPrefabs[selectedBlockIndex]);
+        _previewBlock.name = "[BlockPreview]";
+
+        // Alle Collider deaktivieren
+        foreach (var col in _previewBlock.GetComponentsInChildren<Collider>())
+        {
+            col.enabled = false;
+        }
+
+        // Rigidbody entfernen
+        var rb = _previewBlock.GetComponent<Rigidbody>();
+        if (rb != null) Destroy(rb);
+
+        SetPreviewColor(validColor);
+        _previewBlock.SetActive(false);
+    }
+
+    private void SetPreviewColor(Color color)
+    {
+        if (_previewBlock == null) return;
+
+        foreach (var renderer in _previewBlock.GetComponentsInChildren<Renderer>())
+        {
+            if (previewMaterial != null)
+            {
+                renderer.material = new Material(previewMaterial);
+            }
+            renderer.material.color = color;
+        }
+    }
+
+    private void OnDestroy()
+    {
+        if (_previewBlock != null)
+            Destroy(_previewBlock);
+    }
+}
+
+/// <summary>Marker-Komponente für platzierte Blöcke.</summary>
+public class PlaceableBlock : MonoBehaviour
+{
+    public int blockTypeIndex;
+}

@@ -1,0 +1,181 @@
+BUILD-WORKFLOW DOKUMENTATION
+==============================
+Detaillierter Ablauf des automatisierten Build-Prozesses.
+Für Hans (OpenClaw) als Referenz.
+
+
+1. PRÄ-BUILD PRÜFUNGEN
+========================
+
+Bevor ein Build gestartet wird, muss Hans folgendes prüfen:
+
+a) Kompilierung erfolgreich?
+   → Lese .plan/unity-status.json
+   → Feld "status" muss "compiled_ok" sein
+   → Falls "compile_error": Fehler-Korrektur-Schleife starten
+
+b) Szenen in Build Settings?
+   → Lese ProjectSettings/EditorBuildSettings.asset
+   → Prüfe ob mindestens eine Szene eingetragen ist
+   → Falls nicht: SceneBootstrapper aufrufen
+
+c) Keine kritischen Fehler im Error-Log?
+   → Lese .plan/error-log.json
+   → Prüfe ob es ungelöste "critical" Fehler gibt
+
+
+2. BUILD STARTEN
+=================
+
+Shell-Befehl:
+  UNITY_PATH="${UNITY_EDITOR_PATH:-Unity}"
+  PROJECT_PATH="[Projektpfad]"
+
+  $UNITY_PATH -batchmode \
+    -projectPath "$PROJECT_PATH" \
+    -executeMethod AutoBuilder.Build \
+    -buildTarget StandaloneLinux64 \
+    -quit \
+    -logFile "$PROJECT_PATH/.plan/build.log" \
+    2>&1
+
+  EXIT_CODE=$?
+
+Der AutoBuilder schreibt seinen Status automatisch nach:
+  .plan/build-status.json
+
+
+3. BUILD ÜBERWACHEN
+====================
+
+Hans wartet auf den Build mit Polling:
+
+  TIMEOUT=600  # 10 Minuten
+  INTERVAL=5   # alle 5 Sekunden
+  ELAPSED=0
+
+  while [ $ELAPSED -lt $TIMEOUT ]; do
+    if [ -f "$PROJECT_PATH/.plan/build-status.json" ]; then
+      STATUS=$(cat "$PROJECT_PATH/.plan/build-status.json" | jq -r '.status')
+      if [ "$STATUS" = "success" ] || [ "$STATUS" = "failed" ]; then
+        break
+      fi
+    fi
+    sleep $INTERVAL
+    ELAPSED=$((ELAPSED + INTERVAL))
+  done
+
+Alternativ: Hans prüft den Exit-Code des Unity-Prozesses.
+
+
+4. BUILD-ERGEBNIS AUSWERTEN
+=============================
+
+a) Erfolg (.plan/build-status.json → status: "success"):
+   {
+     "status": "success",
+     "message": "Build erfolgreich abgeschlossen.",
+     "errors": 0,
+     "warnings": 3,
+     "sizeMB": "45.20",
+     "buildPath": "/home/user/GameDev-Projekte/MeinSpiel/Builds/StandaloneLinux64",
+     "buildTimeSeconds": 45.2,
+     "timestamp": "2026-04-15T12:00:00Z"
+   }
+
+   → Weiter zu Post-Build
+
+b) Fehlschlag (.plan/build-status.json → status: "failed"):
+   {
+     "status": "failed",
+     "message": "CS1234: The type 'Foo' does not exist...",
+     "errors": 2,
+     "warnings": 5,
+     ...
+   }
+
+   → Fehler an Günther senden für Analyse
+   → Günther erstellt Korrektur-Prompt
+   → Copilot korrigiert den Code
+   → Erneuten Build starten (max 5 Versuche)
+
+c) Timeout:
+   → Unity-Prozess beenden: kill $(pgrep -f Unity)
+   → Build-Log analysieren: tail -100 .plan/build.log
+   → User informieren
+
+
+5. POST-BUILD CLEANUP
+======================
+
+Nach erfolgreichem Build führt Hans folgende Schritte aus:
+
+a) Build-Größe ermitteln:
+   du -sh "$PROJECT_PATH/Builds/" | awk '{print $1}'
+
+b) .plan/ Ordner NICHT in Build kopieren (passiert nicht, da er
+   außerhalb von Assets/ liegt)
+
+c) README.md erstellen:
+   Datei: [Projektpfad]/Builds/README.md
+   Inhalt:
+   """
+   # [Game Name]
+   
+   Erstellt am: [Datum]
+   Build-Typ: [Target]
+   Größe: [MB]
+   
+   ## Starten
+   Linux: ./game.x86_64
+   Windows: game.exe doppelklicken
+   
+   ## Steuerung
+   [Wird von Günther basierend auf Genre generiert]
+   
+   ## Erstellt von
+   Autonomes GameDev System (Hans + Günther + Copilot)
+   """
+
+d) Optional: ZIP erstellen:
+   cd "$PROJECT_PATH/Builds"
+   zip -r "${GAME_NAME}_build_$(date +%Y%m%d).zip" [target-folder]/
+
+e) User benachrichtigen via Telegram:
+   "[Game Name] ist fertig! Build-Größe: [MB]
+    Pfad: [Build-Pfad]
+    Fehler: 0, Warnungen: [N]
+    Build-Zeit: [Sekunden]s"
+
+
+6. FEHLERBEHEBUNG BEI BUILD-PROBLEMEN
+=======================================
+
+Häufige Build-Fehler und Lösungen:
+
+| Fehler | Ursache | Lösung |
+|--------|---------|--------|
+| CS0246: Type not found | Fehlende using-Direktive | using hinzufügen |
+| CS0103: Name does not exist | Variable/Methode nicht definiert | Code korrigieren |
+| Missing script reference | Script-Datei umbenannt/gelöscht | Referenz updaten |
+| No scenes in build | EditorBuildSettings leer | Szene hinzufügen |
+| Target platform not installed | Build-Target fehlt | Unity Module installieren |
+| Out of memory | Zu große Assets/Szene | Assets optimieren |
+
+Hans sendet den Fehler immer erst an Günther (error-analysis Prompt),
+bevor er versucht ihn selbst zu beheben.
+
+
+7. BUILD-TARGETS MATRIX
+=========================
+
+| Target | Flag | Executable | Hinweis |
+|--------|------|-----------|---------|
+| Linux | StandaloneLinux64 | game.x86_64 | Primäres Target |
+| Windows | StandaloneWindows64 | game.exe | Cross-compile möglich |
+| WebGL | WebGL | index.html | Kein .exe, Web-Build |
+| macOS | StandaloneOSX | game.app | Nur auf macOS möglich |
+
+Für Linux-Host ist Linux das einfachste Build-Target.
+Windows-Builds sind per Cross-Compilation möglich.
+WebGL erfordert zusätzliches Unity-Modul.

@@ -325,6 +325,10 @@ Detailliert in: `pipeline/context-management.md`
 - `references/csharp-patterns.txt` → C#-Patterns für Unity
 - `references/common-unity-errors.txt` → Häufige Unity-Fehler
 
+### Referenzen (Teil E - Unity-Integration)
+- `references/unity-cli-commands.txt` → Unity CLI Referenz (Befehle, Flags, Return-Codes)
+- `references/build-workflow.txt` → Build-Workflow-Dokumentation (Prä-Build, Build, Post-Build)
+
 ### Templates (für `.plan/` Ordner)
 - `templates/orchestrator-state.json` → Initiale Zustandsmaschine
 - `templates/current-phase.json` → Initiale aktuelle Phase
@@ -339,6 +343,56 @@ Detailliert in: `pipeline/context-management.md`
 - `templates/base-game-manager.cs.txt` → GameManager Template
 - `templates/base-player-controller.cs.txt` → PlayerController Template
 - `templates/AutoCompileWatcher.cs.txt` → Unity Compile Watcher
+
+### Basis-Templates (Teil E - Schritt 17)
+- `templates/Singleton.cs.txt` → Generisches Singleton-Pattern
+- `templates/SceneLoader.cs.txt` → Async Szenen-Lader mit Loading-Screen
+- `templates/InputManager.cs.txt` → Input-System (**Legacy Input Manager, Zero-Config**, kein Asset-Setup nötig)
+- `templates/AudioManager.cs.txt` → Audio-Manager (Musik, SFX, Volume)
+- `templates/SharedInventory.cs.txt` → **Shared Inventar-Typen** (ItemData, InventorySlot, InventorySystem, ItemType) — für RPG und Sandbox
+
+### Editor-Scripts (Teil E - Schritt 18)
+- `templates/editor/AutoBuilder.cs.txt` → Automatisierter Build (Windows/Linux/WebGL/Dev)
+- `templates/editor/SceneBootstrapper.cs.txt` → Szene automatisch einrichten (Kamera, Licht, etc.)
+- `templates/editor/AutoComponentAssigner.cs.txt` → Komponenten nach Namenskonvention zuweisen
+
+### Genre-spezifische Templates (Teil E - Schritt 17.2)
+
+**Driving:**
+- `templates/genres/driving/VehicleController.cs.txt` → Fahrzeug mit WheelColliders
+- `templates/genres/driving/SpeedometerUI.cs.txt` → Tachometer UI
+- `templates/genres/driving/FuelSystem.cs.txt` → Treibstoff-System
+
+**Platformer:**
+- `templates/genres/platformer/PlatformerController.cs.txt` → 2D Controller mit Coyote-Time, Wandsprung
+- `templates/genres/platformer/GroundCheck.cs.txt` → Bodenerkennung
+- `templates/genres/platformer/CoinCollector.cs.txt` → Collectible-System
+
+**RPG:**
+- `templates/genres/rpg/RPGCharacterController.cs.txt` → Third-Person Controller
+- `templates/genres/rpg/DialogueSystem.cs.txt` → Dialog-System mit Typing-Effekt
+- `templates/genres/rpg/InventorySystem.cs.txt` → ⚠️ **DEPRECATED** — ersetzt durch `templates/SharedInventory.cs.txt`
+
+**Sandbox:**
+- `templates/genres/sandbox/FPSController.cs.txt` → First-Person Controller mit Crouch, HeadBob
+- `templates/genres/sandbox/BlockPlacer.cs.txt` → Block-Platzierungs-System
+- `templates/genres/sandbox/CraftingSystem.cs.txt` → Crafting mit ScriptableObject-Rezepten
+
+### Template-Deployment-Regeln (Teil E)
+
+| Genre        | Required Templates                                             |
+|--------------|----------------------------------------------------------------|
+| Driving      | Singleton, SceneLoader, InputManager, AudioManager + Driving-Set |
+| Platformer   | Singleton, SceneLoader, InputManager, AudioManager + Platformer-Set |
+| RPG          | Singleton, SceneLoader, InputManager, AudioManager, **SharedInventory** + RPG-Set |
+| Sandbox      | Singleton, SceneLoader, InputManager, AudioManager, **SharedInventory** + Sandbox-Set |
+| RPG + Sandbox| Singleton, SceneLoader, InputManager, AudioManager, **SharedInventory EINMAL** + beide Sets |
+
+**Wichtige Regeln:**
+- `SharedInventory.cs.txt` IMMER vor `CraftingSystem.cs.txt` deployen
+- `InventorySystem.cs.txt` (RPG/deprecated) NICHT zusammen mit `SharedInventory.cs.txt` deployen  
+  → Doppelte Klassen-Definitionen = Compiler-Fehler
+- `InputManager.cs.txt` funktioniert **ohne jedes Setup** (Legacy Input Manager)
 
 ### Test-Daten (Dry-Run)
 - `test-data/mock-master-plan.json` → Mock 3-Phasen-Plan (JumpingCube)

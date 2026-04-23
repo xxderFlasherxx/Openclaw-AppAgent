@@ -1,0 +1,87 @@
+using UnityEngine;
+using UnityEngine.Events;
+
+/// <summary>
+/// Treibstoff-System für Fahrspiele.
+/// Verwaltet Tank, Verbrauch und Nachfüllen.
+/// </summary>
+public class FuelSystem : MonoBehaviour
+{
+    [Header("Fuel Settings")]
+    [SerializeField] private float maxFuel = 100f;
+    [SerializeField] private float currentFuel = 100f;
+    [SerializeField] private float baseFuelConsumption = 0.5f; // pro Sekunde
+    [SerializeField] private float speedFuelMultiplier = 0.02f; // extra pro km/h
+
+    [Header("References")]
+    [SerializeField] private VehicleController vehicle;
+
+    [Header("Events")]
+    public UnityEvent OnFuelEmpty;
+    public UnityEvent<float> OnFuelChanged; // 0.0 - 1.0
+
+    /// <summary>Aktueller Treibstoff (absolut)</summary>
+    public float CurrentFuel => currentFuel;
+
+    /// <summary>Aktueller Treibstoff normalisiert (0-1)</summary>
+    public float FuelNormalized => currentFuel / maxFuel;
+
+    /// <summary>Ob der Tank leer ist</summary>
+    public bool IsEmpty => currentFuel <= 0f;
+
+    /// <summary>Maximaler Treibstoff</summary>
+    public float MaxFuel => maxFuel;
+
+    private bool _wasNotifiedEmpty = false;
+
+    private void Update()
+    {
+        if (IsEmpty) return;
+
+        ConsumeFuel();
+    }
+
+    private void ConsumeFuel()
+    {
+        if (vehicle == null) return;
+
+        // Verbrauch basierend auf Geschwindigkeit
+        float consumption = baseFuelConsumption;
+        consumption += vehicle.CurrentSpeedKmh * speedFuelMultiplier;
+
+        currentFuel -= consumption * Time.deltaTime;
+        currentFuel = Mathf.Max(0f, currentFuel);
+
+        OnFuelChanged?.Invoke(FuelNormalized);
+
+        if (IsEmpty && !_wasNotifiedEmpty)
+        {
+            _wasNotifiedEmpty = true;
+            OnFuelEmpty?.Invoke();
+            Debug.Log("[FuelSystem] Tank ist leer!");
+        }
+    }
+
+    /// <summary>Tankt eine bestimmte Menge auf.</summary>
+    public void Refuel(float amount)
+    {
+        currentFuel = Mathf.Min(currentFuel + amount, maxFuel);
+        _wasNotifiedEmpty = false;
+        OnFuelChanged?.Invoke(FuelNormalized);
+        Debug.Log($"[FuelSystem] Aufgetankt: +{amount}. Aktuell: {currentFuel:F1}/{maxFuel}");
+    }
+
+    /// <summary>Tankt den Tank komplett voll.</summary>
+    public void RefuelFull()
+    {
+        Refuel(maxFuel - currentFuel);
+    }
+
+    /// <summary>Setzt den Treibstoff direkt (für Save/Load).</summary>
+    public void SetFuel(float amount)
+    {
+        currentFuel = Mathf.Clamp(amount, 0f, maxFuel);
+        _wasNotifiedEmpty = currentFuel <= 0f;
+        OnFuelChanged?.Invoke(FuelNormalized);
+    }
+}

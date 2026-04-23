@@ -1,0 +1,203 @@
+using UnityEditor;
+using UnityEditor.SceneManagement;
+using UnityEngine;
+using System;
+using System.IO;
+using System.Linq;
+using System.Text;
+
+/// <summary>
+/// AutoComponentAssigner - Weist Komponenten automatisch zu basierend auf
+/// Namenskonventionen und Projekt-Logik.
+///
+/// CLI-Aufruf:
+///   Unity -batchmode -projectPath [pfad] -executeMethod AutoComponentAssigner.AssignComponents -quit
+/// </summary>
+public class AutoComponentAssigner
+{
+    /// <summary>
+    /// Durchsucht alle GameObjects in der Szene und weist fehlende
+    /// Komponenten basierend auf Namenskonventionen zu.
+    /// Menü: Tools → Auto-Assign Components
+    /// </summary>
+    [MenuItem("Tools/Auto-Assign Components")]
+    public static void AssignComponents()
+    {
+        int assigned = 0;
+        int skipped = 0;
+
+        var allObjects = UnityEngine.Object.FindObjectsOfType<GameObject>();
+
+        StringBuilder report = new StringBuilder();
+        report.AppendLine("Auto-Assign Component Report:");
+        report.AppendLine("=============================");
+
+        foreach (var obj in allObjects)
+        {
+            // Ignoriere Editor-Objekte
+            if (obj.name.StartsWith("---") || obj.name.StartsWith("[")) continue;
+
+            // Strategie 1: Script mit gleichem Namen wie GameObject
+            string scriptName = obj.name;
+            var scriptType = FindType(scriptName);
+            if (scriptType != null && obj.GetComponent(scriptType) == null)
+            {
+                if (typeof(MonoBehaviour).IsAssignableFrom(scriptType))
+                {
+                    obj.AddComponent(scriptType);
+                    assigned++;
+                    report.AppendLine($"  + {scriptName} → {obj.name}");
+                }
+            }
+
+            // Strategie 2: Script mit "Controller" Suffix
+            string controllerName = obj.name + "Controller";
+            var controllerType = FindType(controllerName);
+            if (controllerType != null && obj.GetComponent(controllerType) == null)
+            {
+                if (typeof(MonoBehaviour).IsAssignableFrom(controllerType))
+                {
+                    obj.AddComponent(controllerType);
+                    assigned++;
+                    report.AppendLine($"  + {controllerName} → {obj.name}");
+                }
+            }
+
+            // Strategie 3: Rigidbody für Objekte mit "Physics" oder "Dynamic" im Namen
+            if ((obj.name.Contains("Physics") || obj.name.Contains("Dynamic"))
+                && obj.GetComponent<Rigidbody>() == null
+                && obj.GetComponent<Rigidbody2D>() == null)
+            {
+                obj.AddComponent<Rigidbody>();
+                assigned++;
+                report.AppendLine($"  + Rigidbody → {obj.name} (Physics-Objekt)");
+            }
+
+            // Strategie 4: Collider für Objekte ohne Collider (die einen Renderer haben)
+            if (obj.GetComponent<Renderer>() != null
+                && obj.GetComponent<Collider>() == null
+                && obj.GetComponent<Collider2D>() == null)
+            {
+                // Nur wenn das Objekt offensichtlich physisch sein soll
+                if (!obj.name.Contains("VFX") && !obj.name.Contains("Particle")
+                    && !obj.name.Contains("UI") && !obj.name.Contains("Effect"))
+                {
+                    skipped++;
+                    report.AppendLine($"  ? {obj.name} hat Renderer aber keinen Collider (manuell prüfen)");
+                }
+            }
+        }
+
+        report.AppendLine($"\nZugewiesen: {assigned}, Zu prüfen: {skipped}");
+        Debug.Log(report.ToString());
+
+        // Status-Datei schreiben
+        WriteAssignReport(assigned, skipped, report.ToString());
+
+        if (assigned > 0)
+        {
+            EditorSceneManager.MarkSceneDirty(
+                UnityEditor.SceneManagement.EditorSceneManager.GetActiveScene());
+        }
+    }
+
+    /// <summary>
+    /// Validiert die Szene: Prüft auf fehlende Referenzen und Komponenten.
+    /// Menü: Tools → Validate Scene
+    /// </summary>
+    [MenuItem("Tools/Validate Scene")]
+    public static void ValidateScene()
+    {
+        StringBuilder issues = new StringBuilder();
+        int issueCount = 0;
+
+        var allObjects = UnityEngine.Object.FindObjectsOfType<MonoBehaviour>();
+
+        foreach (var mb in allObjects)
+        {
+            if (mb == null) continue;
+
+            // Prüfe auf null SerializedFields
+            var so = new SerializedObject(mb);
+            var prop = so.GetIterator();
+
+            while (prop.NextVisible(true))
+            {
+                if (prop.propertyType == SerializedPropertyType.ObjectReference)
+                {
+                    if (prop.objectReferenceValue == null
+                        && prop.objectReferenceInstanceIDValue != 0)
+                    {
+                        issues.AppendLine(
+                            $"  ! Missing Reference: {mb.gameObject.name}.{mb.GetType().Name}.{prop.name}");
+                        issueCount++;
+                    }
+                }
+            }
+        }
+
+        if (issueCount == 0)
+        {
+            Debug.Log("[Validator] Keine Probleme gefunden.");
+        }
+        else
+        {
+            Debug.LogWarning($"[Validator] {issueCount} Probleme gefunden:\n{issues}");
+        }
+
+        // Status-Datei
+        string planDir = Path.Combine(Application.dataPath, "..", ".plan");
+        if (Directory.Exists(planDir))
+        {
+            string json = "{\n" +
+                $"  \"status\": \"{(issueCount == 0 ? "valid" : "issues_found")}\",\n" +
+                $"  \"issueCount\": {issueCount},\n" +
+                $"  \"details\": \"{EscapeJson(issues.ToString())}\",\n" +
+                $"  \"timestamp\": \"{DateTime.UtcNow:o}\"\n" +
+                "}";
+            File.WriteAllText(Path.Combine(planDir, "validation-status.json"), json);
+        }
+    }
+
+    // ============================
+    // HILFSFUNKTIONEN
+    // ============================
+
+    private static Type FindType(string typeName)
+    {
+        // Suche in allen geladenen Assemblies
+        return AppDomain.CurrentDomain.GetAssemblies()
+            .SelectMany(a =>
+            {
+                try { return a.GetTypes(); }
+                catch { return Type.EmptyTypes; }
+            })
+            .FirstOrDefault(t => t.Name == typeName && !t.IsAbstract);
+    }
+
+    private static void WriteAssignReport(int assigned, int skipped, string details)
+    {
+        string planDir = Path.Combine(Application.dataPath, "..", ".plan");
+        if (!Directory.Exists(planDir)) return;
+
+        string json = "{\n" +
+            $"  \"status\": \"completed\",\n" +
+            $"  \"componentsAssigned\": {assigned},\n" +
+            $"  \"needsReview\": {skipped},\n" +
+            $"  \"details\": \"{EscapeJson(details)}\",\n" +
+            $"  \"timestamp\": \"{DateTime.UtcNow:o}\"\n" +
+            "}";
+        File.WriteAllText(Path.Combine(planDir, "assign-status.json"), json);
+    }
+
+    private static string EscapeJson(string text)
+    {
+        if (string.IsNullOrEmpty(text)) return "";
+        return text
+            .Replace("\\", "\\\\")
+            .Replace("\"", "\\\"")
+            .Replace("\n", "\\n")
+            .Replace("\r", "\\r")
+            .Replace("\t", "\\t");
+    }
+}

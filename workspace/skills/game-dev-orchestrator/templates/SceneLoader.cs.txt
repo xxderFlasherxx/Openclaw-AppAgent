@@ -1,0 +1,107 @@
+using UnityEngine;
+using UnityEngine.SceneManagement;
+using System;
+using System.Collections;
+
+/// <summary>
+/// Szenen-Management mit async Loading und optionalem Loading-Screen.
+/// Nutzt Singleton-Pattern für globalen Zugriff.
+/// </summary>
+public class SceneLoader : Singleton<SceneLoader>
+{
+    [Header("Loading Settings")]
+    [SerializeField] private string loadingSceneName = "LoadingScene";
+    [SerializeField] private bool useLoadingScene = false;
+
+    /// <summary>Fortschritt des aktuellen Ladevorgangs (0.0 - 1.0)</summary>
+    public float LoadingProgress { get; private set; }
+
+    /// <summary>Ob gerade eine Szene geladen wird</summary>
+    public bool IsLoading { get; private set; }
+
+    /// <summary>Event: Szene wurde vollständig geladen</summary>
+    public event Action<string> OnSceneLoaded;
+
+    /// <summary>Event: Ladefortschritt hat sich geändert</summary>
+    public event Action<float> OnLoadingProgressChanged;
+
+    /// <summary>
+    /// Lädt eine Szene asynchron.
+    /// </summary>
+    /// <param name="sceneName">Name der zu ladenden Szene</param>
+    public void LoadScene(string sceneName)
+    {
+        if (IsLoading)
+        {
+            Debug.LogWarning("[SceneLoader] Bereits beim Laden. Aufruf ignoriert.");
+            return;
+        }
+
+        StartCoroutine(LoadSceneAsync(sceneName));
+    }
+
+    /// <summary>
+    /// Lädt eine Szene asynchron mit optionalem Loading-Screen.
+    /// </summary>
+    private IEnumerator LoadSceneAsync(string sceneName)
+    {
+        IsLoading = true;
+        LoadingProgress = 0f;
+
+        // Optional: Loading-Szene zuerst laden
+        if (useLoadingScene && !string.IsNullOrEmpty(loadingSceneName))
+        {
+            SceneManager.LoadScene(loadingSceneName);
+            yield return null; // Ein Frame warten
+        }
+
+        AsyncOperation asyncOp = SceneManager.LoadSceneAsync(sceneName);
+        if (asyncOp == null)
+        {
+            Debug.LogError($"[SceneLoader] Szene '{sceneName}' konnte nicht geladen werden.");
+            IsLoading = false;
+            yield break;
+        }
+
+        asyncOp.allowSceneActivation = false;
+
+        // Fortschritt überwachen
+        while (asyncOp.progress < 0.9f)
+        {
+            LoadingProgress = Mathf.Clamp01(asyncOp.progress / 0.9f);
+            OnLoadingProgressChanged?.Invoke(LoadingProgress);
+            yield return null;
+        }
+
+        // Szene aktivieren
+        LoadingProgress = 1f;
+        OnLoadingProgressChanged?.Invoke(LoadingProgress);
+        asyncOp.allowSceneActivation = true;
+
+        // Warten bis Szene vollständig geladen
+        while (!asyncOp.isDone)
+        {
+            yield return null;
+        }
+
+        IsLoading = false;
+        OnSceneLoaded?.Invoke(sceneName);
+        Debug.Log($"[SceneLoader] Szene '{sceneName}' erfolgreich geladen.");
+    }
+
+    /// <summary>
+    /// Lädt die aktuelle Szene neu.
+    /// </summary>
+    public void ReloadCurrentScene()
+    {
+        LoadScene(SceneManager.GetActiveScene().name);
+    }
+
+    /// <summary>
+    /// Gibt den Namen der aktuell aktiven Szene zurück.
+    /// </summary>
+    public string GetCurrentSceneName()
+    {
+        return SceneManager.GetActiveScene().name;
+    }
+}

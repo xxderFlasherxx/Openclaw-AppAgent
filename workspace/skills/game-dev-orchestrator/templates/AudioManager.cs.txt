@@ -1,0 +1,230 @@
+using UnityEngine;
+using System.Collections;
+using System.Collections.Generic;
+
+/// <summary>
+/// AudioManager - Verwaltet Musik und Soundeffekte.
+/// Singleton mit Object-Pooling für SFX.
+/// </summary>
+public class AudioManager : Singleton<AudioManager>
+{
+    [Header("Audio Sources")]
+    [SerializeField] private AudioSource musicSource;
+    [SerializeField] private AudioSource sfxSource;
+
+    [Header("Volume Settings")]
+    [Range(0f, 1f)]
+    [SerializeField] private float masterVolume = 1f;
+    [Range(0f, 1f)]
+    [SerializeField] private float musicVolume = 0.7f;
+    [Range(0f, 1f)]
+    [SerializeField] private float sfxVolume = 1f;
+
+    [Header("Music Settings")]
+    [SerializeField] private float musicFadeDuration = 1.5f;
+
+    // SFX Pool für simultane Sounds
+    private List<AudioSource> _sfxPool = new List<AudioSource>();
+    private const int SFX_POOL_SIZE = 10;
+
+    protected override void Awake()
+    {
+        base.Awake();
+        InitializeAudioSources();
+        InitializeSfxPool();
+    }
+
+    private void InitializeAudioSources()
+    {
+        if (musicSource == null)
+        {
+            var musicObj = new GameObject("MusicSource");
+            musicObj.transform.SetParent(transform);
+            musicSource = musicObj.AddComponent<AudioSource>();
+            musicSource.loop = true;
+            musicSource.playOnAwake = false;
+        }
+
+        if (sfxSource == null)
+        {
+            var sfxObj = new GameObject("SFXSource");
+            sfxObj.transform.SetParent(transform);
+            sfxSource = sfxObj.AddComponent<AudioSource>();
+            sfxSource.playOnAwake = false;
+        }
+
+        ApplyVolumeSettings();
+    }
+
+    private void InitializeSfxPool()
+    {
+        for (int i = 0; i < SFX_POOL_SIZE; i++)
+        {
+            var poolObj = new GameObject($"SFXPool_{i}");
+            poolObj.transform.SetParent(transform);
+            var source = poolObj.AddComponent<AudioSource>();
+            source.playOnAwake = false;
+            _sfxPool.Add(source);
+        }
+    }
+
+    // ==================== MUSIK ====================
+
+    /// <summary>Spielt Musik-Track ab (mit Fade-In wenn gewünscht).</summary>
+    public void PlayMusic(AudioClip clip, bool fade = true)
+    {
+        if (clip == null) return;
+
+        if (fade && musicSource.isPlaying)
+        {
+            StartCoroutine(CrossfadeMusic(clip));
+        }
+        else
+        {
+            musicSource.clip = clip;
+            musicSource.Play();
+        }
+    }
+
+    /// <summary>Stoppt die aktuelle Musik (mit optionalem Fade-Out).</summary>
+    public void StopMusic(bool fade = true)
+    {
+        if (fade)
+        {
+            StartCoroutine(FadeOutMusic());
+        }
+        else
+        {
+            musicSource.Stop();
+        }
+    }
+
+    /// <summary>Pausiert/Setzt Musik fort.</summary>
+    public void TogglePauseMusic()
+    {
+        if (musicSource.isPlaying)
+            musicSource.Pause();
+        else
+            musicSource.UnPause();
+    }
+
+    private IEnumerator CrossfadeMusic(AudioClip newClip)
+    {
+        float startVolume = musicSource.volume;
+
+        // Fade Out
+        float elapsed = 0f;
+        while (elapsed < musicFadeDuration)
+        {
+            elapsed += Time.unscaledDeltaTime;
+            musicSource.volume = Mathf.Lerp(startVolume, 0f, elapsed / musicFadeDuration);
+            yield return null;
+        }
+
+        // Clip wechseln
+        musicSource.clip = newClip;
+        musicSource.Play();
+
+        // Fade In
+        elapsed = 0f;
+        while (elapsed < musicFadeDuration)
+        {
+            elapsed += Time.unscaledDeltaTime;
+            musicSource.volume = Mathf.Lerp(0f, musicVolume * masterVolume, elapsed / musicFadeDuration);
+            yield return null;
+        }
+
+        musicSource.volume = musicVolume * masterVolume;
+    }
+
+    private IEnumerator FadeOutMusic()
+    {
+        float startVolume = musicSource.volume;
+        float elapsed = 0f;
+
+        while (elapsed < musicFadeDuration)
+        {
+            elapsed += Time.unscaledDeltaTime;
+            musicSource.volume = Mathf.Lerp(startVolume, 0f, elapsed / musicFadeDuration);
+            yield return null;
+        }
+
+        musicSource.Stop();
+        musicSource.volume = startVolume;
+    }
+
+    // ==================== SFX ====================
+
+    /// <summary>Spielt einen Sound-Effekt ab.</summary>
+    public void PlaySFX(AudioClip clip, float volumeScale = 1f)
+    {
+        if (clip == null) return;
+
+        AudioSource source = GetAvailableSfxSource();
+        if (source != null)
+        {
+            source.clip = clip;
+            source.volume = sfxVolume * masterVolume * volumeScale;
+            source.Play();
+        }
+        else
+        {
+            // Fallback: PlayOneShot auf dem Hauptkanal
+            sfxSource.PlayOneShot(clip, sfxVolume * masterVolume * volumeScale);
+        }
+    }
+
+    /// <summary>Spielt SFX an einer bestimmten Position (3D Sound).</summary>
+    public void PlaySFXAtPosition(AudioClip clip, Vector3 position, float volumeScale = 1f)
+    {
+        if (clip == null) return;
+        AudioSource.PlayClipAtPoint(clip, position, sfxVolume * masterVolume * volumeScale);
+    }
+
+    private AudioSource GetAvailableSfxSource()
+    {
+        foreach (var source in _sfxPool)
+        {
+            if (!source.isPlaying)
+                return source;
+        }
+        return null;
+    }
+
+    // ==================== VOLUME CONTROL ====================
+
+    /// <summary>Setzt die Master-Lautstärke (0.0 - 1.0).</summary>
+    public void SetMasterVolume(float volume)
+    {
+        masterVolume = Mathf.Clamp01(volume);
+        ApplyVolumeSettings();
+    }
+
+    /// <summary>Setzt die Musik-Lautstärke (0.0 - 1.0).</summary>
+    public void SetMusicVolume(float volume)
+    {
+        musicVolume = Mathf.Clamp01(volume);
+        ApplyVolumeSettings();
+    }
+
+    /// <summary>Setzt die SFX-Lautstärke (0.0 - 1.0).</summary>
+    public void SetSFXVolume(float volume)
+    {
+        sfxVolume = Mathf.Clamp01(volume);
+        ApplyVolumeSettings();
+    }
+
+    private void ApplyVolumeSettings()
+    {
+        if (musicSource != null)
+            musicSource.volume = musicVolume * masterVolume;
+        if (sfxSource != null)
+            sfxSource.volume = sfxVolume * masterVolume;
+    }
+
+    /// <summary>Gibt aktuelle Lautstärke-Werte zurück.</summary>
+    public (float master, float music, float sfx) GetVolumeSettings()
+    {
+        return (masterVolume, musicVolume, sfxVolume);
+    }
+}

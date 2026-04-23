@@ -1,0 +1,65 @@
+using UnityEngine;
+
+/// <summary>
+/// Bodenerkennung für 2D Platformer.
+/// Wird als Child-Objekt unter den Füßen des Charakters platziert.
+/// Kann auch für Kopf-Erkennung (Decke) verwendet werden.
+/// </summary>
+public class GroundCheck : MonoBehaviour
+{
+    [Header("Settings")]
+    [SerializeField] private LayerMask groundLayer;
+    [SerializeField] private float checkRadius = 0.2f;
+    [SerializeField] private bool useBoxCheck = false;
+    [SerializeField] private Vector2 boxSize = new Vector2(0.5f, 0.1f);
+
+    /// <summary>Ob ein Boden erkannt wird</summary>
+    public bool IsDetected { get; private set; }
+
+    /// <summary>Die Normale der erkannten Oberfläche</summary>
+    public Vector2 SurfaceNormal { get; private set; }
+
+    /// <summary>Das erkannte Collider-Objekt</summary>
+    public Collider2D DetectedCollider { get; private set; }
+
+    private void FixedUpdate()
+    {
+        if (useBoxCheck)
+        {
+            DetectedCollider = Physics2D.OverlapBox(
+                transform.position, boxSize, 0f, groundLayer);
+        }
+        else
+        {
+            DetectedCollider = Physics2D.OverlapCircle(
+                transform.position, checkRadius, groundLayer);
+        }
+
+        IsDetected = DetectedCollider != null;
+
+        if (IsDetected)
+        {
+            RaycastHit2D hit = Physics2D.Raycast(
+                transform.position, Vector2.down, checkRadius + 0.1f, groundLayer);
+            SurfaceNormal = hit.collider != null ? hit.normal : Vector2.up;
+        }
+        else
+        {
+            SurfaceNormal = Vector2.up;
+        }
+    }
+
+    private void OnDrawGizmosSelected()
+    {
+        Gizmos.color = IsDetected ? Color.green : Color.red;
+
+        if (useBoxCheck)
+        {
+            Gizmos.DrawWireCube(transform.position, boxSize);
+        }
+        else
+        {
+            Gizmos.DrawWireSphere(transform.position, checkRadius);
+        }
+    }
+}

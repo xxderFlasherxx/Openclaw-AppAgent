@@ -1,0 +1,195 @@
+using UnityEngine;
+
+/// <summary>
+/// First-Person Controller für Sandbox-Spiele.
+/// Unterstützt Laufen, Sprinten, Springen und Mouselook.
+/// </summary>
+[RequireComponent(typeof(CharacterController))]
+public class FPSController : MonoBehaviour
+{
+    [Header("Movement")]
+    [SerializeField] private float walkSpeed = 5f;
+    [SerializeField] private float sprintSpeed = 9f;
+    [SerializeField] private float crouchSpeed = 2.5f;
+
+    [Header("Jump & Gravity")]
+    [SerializeField] private float jumpHeight = 1.5f;
+    [SerializeField] private float gravity = -20f;
+    [SerializeField] private float groundCheckDistance = 0.4f;
+    [SerializeField] private LayerMask groundMask;
+
+    [Header("Mouse Look")]
+    [SerializeField] private float mouseSensitivity = 2f;
+    [SerializeField] private float maxLookAngle = 85f;
+    [SerializeField] private Transform cameraHolder;
+
+    [Header("Crouch")]
+    [SerializeField] private float standingHeight = 2f;
+    [SerializeField] private float crouchHeight = 1.2f;
+    [SerializeField] private float crouchTransitionSpeed = 8f;
+
+    [Header("Head Bob")]
+    [SerializeField] private bool enableHeadBob = true;
+    [SerializeField] private float bobFrequency = 2f;
+    [SerializeField] private float bobAmplitude = 0.05f;
+
+    private CharacterController _controller;
+    private Vector3 _velocity;
+    private float _xRotation;
+    private bool _isGrounded;
+    private bool _isCrouching;
+    private float _bobTimer;
+    private Vector3 _cameraDefaultPos;
+
+    /// <summary>Ob der Spieler am Boden steht</summary>
+    public bool IsGrounded => _isGrounded;
+
+    /// <summary>Ob der Spieler sprintet</summary>
+    public bool IsSprinting { get; private set; }
+
+    /// <summary>Ob der Spieler geduckt ist</summary>
+    public bool IsCrouching => _isCrouching;
+
+    /// <summary>Aktuelle Geschwindigkeit</summary>
+    public float CurrentSpeed => new Vector3(_controller.velocity.x, 0f, _controller.velocity.z).magnitude;
+
+    private void Awake()
+    {
+        _controller = GetComponent<CharacterController>();
+
+        if (cameraHolder == null)
+        {
+            cameraHolder = GetComponentInChildren<Camera>()?.transform;
+        }
+
+        if (cameraHolder != null)
+        {
+            _cameraDefaultPos = cameraHolder.localPosition;
+        }
+    }
+
+    private void Start()
+    {
+        Cursor.lockState = CursorLockMode.Locked;
+        Cursor.visible = false;
+    }
+
+    private void Update()
+    {
+        GroundCheck();
+        HandleMouseLook();
+        HandleMovement();
+        HandleJump();
+        HandleCrouch();
+        ApplyGravity();
+
+        if (enableHeadBob)
+            HandleHeadBob();
+    }
+
+    private void GroundCheck()
+    {
+        _isGrounded = Physics.CheckSphere(
+            transform.position + Vector3.down * (standingHeight * 0.5f),
+            groundCheckDistance, groundMask);
+
+        if (_isGrounded && _velocity.y < 0f)
+        {
+            _velocity.y = -2f;
+        }
+    }
+
+    private void HandleMouseLook()
+    {
+        float mouseX = Input.GetAxis("Mouse X") * mouseSensitivity;
+        float mouseY = Input.GetAxis("Mouse Y") * mouseSensitivity;
+
+        _xRotation -= mouseY;
+        _xRotation = Mathf.Clamp(_xRotation, -maxLookAngle, maxLookAngle);
+
+        if (cameraHolder != null)
+        {
+            cameraHolder.localRotation = Quaternion.Euler(_xRotation, 0f, 0f);
+        }
+
+        transform.Rotate(Vector3.up * mouseX);
+    }
+
+    private void HandleMovement()
+    {
+        float h = Input.GetAxisRaw("Horizontal");
+        float v = Input.GetAxisRaw("Vertical");
+
+        IsSprinting = Input.GetKey(KeyCode.LeftShift) && !_isCrouching && v > 0f;
+
+        float speed = _isCrouching ? crouchSpeed
+                    : IsSprinting ? sprintSpeed
+                    : walkSpeed;
+
+        Vector3 moveDir = (transform.right * h + transform.forward * v).normalized;
+        _controller.Move(moveDir * speed * Time.deltaTime);
+    }
+
+    private void HandleJump()
+    {
+        if (Input.GetButtonDown("Jump") && _isGrounded && !_isCrouching)
+        {
+            _velocity.y = Mathf.Sqrt(jumpHeight * -2f * gravity);
+        }
+    }
+
+    private void HandleCrouch()
+    {
+        if (Input.GetKeyDown(KeyCode.LeftControl) || Input.GetKeyDown(KeyCode.C))
+        {
+            _isCrouching = !_isCrouching;
+        }
+
+        float targetHeight = _isCrouching ? crouchHeight : standingHeight;
+        _controller.height = Mathf.Lerp(
+            _controller.height, targetHeight,
+            Time.deltaTime * crouchTransitionSpeed);
+
+        // Kamera-Position anpassen
+        if (cameraHolder != null)
+        {
+            float targetCamY = _isCrouching
+                ? _cameraDefaultPos.y - (standingHeight - crouchHeight) * 0.5f
+                : _cameraDefaultPos.y;
+            Vector3 camPos = cameraHolder.localPosition;
+            camPos.y = Mathf.Lerp(camPos.y, targetCamY, Time.deltaTime * crouchTransitionSpeed);
+            cameraHolder.localPosition = camPos;
+        }
+    }
+
+    private void ApplyGravity()
+    {
+        _velocity.y += gravity * Time.deltaTime;
+        _controller.Move(_velocity * Time.deltaTime);
+    }
+
+    private void HandleHeadBob()
+    {
+        if (!_isGrounded || CurrentSpeed < 0.1f)
+        {
+            _bobTimer = 0f;
+            return;
+        }
+
+        _bobTimer += Time.deltaTime * bobFrequency * (IsSprinting ? 1.5f : 1f);
+
+        if (cameraHolder != null)
+        {
+            Vector3 pos = cameraHolder.localPosition;
+            pos.y += Mathf.Sin(_bobTimer) * bobAmplitude;
+            cameraHolder.localPosition = pos;
+        }
+    }
+
+    /// <summary>Cursor-Lock umschalten (z.B. für Menüs)</summary>
+    public void ToggleCursorLock(bool locked)
+    {
+        Cursor.lockState = locked ? CursorLockMode.Locked : CursorLockMode.None;
+        Cursor.visible = !locked;
+    }
+}
