@@ -52,17 +52,17 @@ INHALTSVERZEICHNIS
     - Schritt 23: Mehrstufiges Memory-System
     - Schritt 24: User-Feedback-Integration
 
-  > TEIL H: COPILOT-BRIDGE (TATSÄCHLICHE AUSFÜHRUNG)
+  TEIL H: COPILOT-BRIDGE (TATSÄCHLICHE AUSFÜHRUNG)
     - Schritt 25: Prompt-Injection-Adapter (CLI / Datei / UI-Automation)
     - Schritt 26: Code-Extraktion und Accept-Handling
     - Schritt 27: Approval-Gates und Sicherheitsmodus
 
-  > TEIL I: UNITY-RUNTIME-WATCHER (TATSÄCHLICHE AUSFÜHRUNG)
+  TEIL I: UNITY-RUNTIME-WATCHER (TATSÄCHLICHE AUSFÜHRUNG)
     - Schritt 28: AutoCompileWatcher im Projekt deployen
     - Schritt 29: Batchmode-Kompilierung als Fallback
     - Schritt 30: Fehler-Pipeline Unity -> Hans -> Günther
 
-  > TEIL J: AUTONOMER END-TO-END-LAUF
+  TEIL J: AUTONOMER END-TO-END-LAUF
     - Schritt 31: Telegram-Trigger und Run-Kommandos
     - Schritt 32: Daemon-Loop und Zustandspersistenz
     - Schritt 33: Notfall-Halt, Budget- und Zeitlimits
