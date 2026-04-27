@@ -545,3 +545,81 @@ Drei neue Top-Level-Blöcke:
 - `memory` — Datei-Pfade, FIFO-Limits, Pattern-Schwellen
 - `feedback` — Timeout, Rating-Schwellen, Hints-Pfad
 
+
+## Copilot-Bridge & Sicherheit (Teil H)
+
+Mit Teil H wird aus dem "Architekt ohne Hände" ein vollwertiger Code-Generator.
+Drei neue Bausteine sorgen dafür, dass Hans den VS Code Copilot tatsächlich
+ansteuern, das Ergebnis bereinigen und unkontrollierte Schreibvorgänge
+verhindern kann.
+
+### 1. Prompt-Injection-Adapter (Schritt 25)
+
+Detailliert in: `pipeline/copilot-bridge.md`
+
+Drei Adapter mit fester Fallback-Reihenfolge:
+- **Adapter A — `file-injection`** (Standard): Schreibt einen Prompt-Header
+  in jede Zieldatei, legt `.plan/copilot-task.md` an und triggert den
+  VS Code Task `copilot-run-phase` (Agent Mode).
+- **Adapter B — `gh-copilot-cli`** (Fallback): Nutzt
+  `gh copilot suggest` / `gh models run` für Utility-Files ohne
+  Workspace-Kontext.
+- **Adapter C — `ui-automation`** (Notfall): `xdotool` (X11) oder
+  `ydotool`/`wtype` (Wayland) — nur wenn A+B explizit fehlschlagen.
+
+Konfiguriert in `gamedev-config.json → copilotBridge`.
+Aufgerufen in `pipeline/execution-loop.md` über `callCopilotBridge()`.
+
+### 2. Code-Extraktion & Accept-Policy (Schritt 26)
+
+`extractCleanCode(rawFile, expectedFile)` (in `copilot-bridge.md`)
+- Strippt Markdown-Fences und Preambles
+- Prüft Klammer-Balance, max. Datei-Größe, einzige Klassen-Definition
+- Lehnt verbotene Tokens ab (`TODO-COPILOT`, `PLACEHOLDER`, …)
+- Schreibt atomar und loggt Diff nach `.plan/copilot-diffs/phaseN-*.diff`
+
+Eine Phase gilt nur dann als erledigt, wenn ALLE Zieldateien existieren,
+verändert wurden, alle `extractCleanCode`-Checks bestehen und keine
+verbotenen Tokens vorkommen.
+
+Bei `accepted=false` geht der Master-Orchestrator in den Zustand
+`CORRECTING` und übergibt den Reason
+(`extraction_failed | timeout | unchanged | forbidden_token | unbalanced_syntax | oversized`)
+an die Fehler-Korrektur (Schritt 15).
+
+### 3. Approval-Gates & Sicherheitsmodus (Schritt 27)
+
+Detailliert in: `pipeline/safety-gates.md`
+
+- `safety.writeScope` / `safety.denyScope`: Glob-Pattern für erlaubte/
+  verbotene Schreib-Pfade
+- `safety.approvalMode`:
+  `manual` | `auto-with-telegram-veto` | `fully-autonomous`
+- `safety.vetoWindowSeconds`: 20 s Veto-Fenster bei Auto-Modus
+- `safety.maxFilesChangedPerPhase`, `safety.maxBytesPerFile`: harte Limits
+- `safety.dryRunFirstRun=true`: Erster Lauf eines Users ist immer Dry-Run.
+  Prompts werden in `.plan/dry-run/phaseN-prompt.md` geschrieben, nichts
+  wird ausgeführt. Freigabe via Telegram-Befehl `/realrun`.
+
+Alle Gate-Entscheidungen werden append-only nach
+`.plan/safety-audit.jsonl` geschrieben.
+
+### Neue Pipeline-Dokumente (Teil H)
+
+- `pipeline/copilot-bridge.md` → Adapter-Kette, Extraktion, Accept-Policy
+- `pipeline/safety-gates.md`   → State-Übergänge, Scopes, Dry-Run
+
+### Neue Tests (Teil H)
+
+- `tests/test-copilot-bridge.sh`   → 38 Checks, Adapter-Auswahl
+- `tests/test-code-extraction.sh`  → 27 Checks, 4 reject + 1 accept
+- `tests/test-safety-gates.sh`     → 34 Checks, Scope/Limits/DryRun
+- `tests/fixtures/copilot-bridge-cases.json` → 6 Adapter-Szenarien
+- `tests/fixtures/extraction/*.cs.txt`       → 5 Extraktions-Fixtures
+
+### Erweiterte Config (`gamedev-config.json`)
+
+Drei neue Top-Level-Blöcke (Teil H):
+- `copilotBridge` — Adapter-Reihenfolge, VS Code Task, Timeout
+- `codeExtraction` — Fence/Preamble-Stripping, verbotene Tokens, Diff-Dir
+- `safety` — writeScope/denyScope, Approval-Modus, Limits, Dry-Run

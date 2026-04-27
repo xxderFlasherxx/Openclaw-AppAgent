@@ -69,6 +69,31 @@ FUNKTION: executePhase(phaseId, projectPath, masterPlan)
   // → .plan/used-patterns.json wird pro Phase ergänzt
 
   // ── 5. VS Code Bridge: Code generieren ─────────────────────
+  // Spezifiziert in: pipeline/copilot-bridge.md (Teil H, Schritt 25-26)
+  // callCopilotBridge() iteriert über config.copilotBridge.fallbackChain
+  //   1. file-injection  (Adapter A) – Standard, schreibt Prompt-Header
+  //                                     + .plan/copilot-task.md und triggert
+  //                                     den VS Code Task "copilot-run-phase"
+  //   2. gh-copilot-cli  (Adapter B) – nur für Utility-Files
+  //   3. ui-automation   (Adapter C) – xdotool/ydotool als Notfall
+  // Pro Datei wird anschließend extractCleanCode() ausgeführt (Schritt 26).
+  bridgeResult = callCopilotBridge({
+    phase:        phase,
+    prompt:       copilotPrompt,
+    targetFiles:  newFiles + modifiedFiles,
+    projectPath:  projectPath,
+    config:       config.copilotBridge
+  })
+
+  IF bridgeResult.status != "accepted":
+    // bridgeResult.reason ∈ {extraction_failed, timeout, unchanged,
+    //                        forbidden_token, unbalanced_syntax, oversized}
+    // → fließt in error-correction.md (Schritt 15) ein
+    triggerCorrection(phase, bridgeResult.reason, bridgeResult.adapterUsed)
+    RETURN "CORRECTING"
+  END IF
+
+  // Legacy-Pfad (deaktiviert, falls kein Bridge konfiguriert):
   FOR EACH targetFile IN (newFiles + modifiedFiles):
 
     // a) Datei erstellen mit Prompt-Kommentar

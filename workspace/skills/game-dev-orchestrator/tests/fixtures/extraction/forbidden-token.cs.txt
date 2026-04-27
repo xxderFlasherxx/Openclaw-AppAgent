@@ -1,0 +1,10 @@
+using UnityEngine;
+
+public class ForbiddenToken : MonoBehaviour
+{
+    void Start()
+    {
+        // TODO-COPILOT: implementiere dies
+        Debug.Log("placeholder");
+    }
+}

@@ -1,0 +1,8 @@
+Hier ist dein Code:
+
+using UnityEngine;
+
+public class WithPreamble : MonoBehaviour
+{
+    void Start() { Debug.Log("hi"); }
+}

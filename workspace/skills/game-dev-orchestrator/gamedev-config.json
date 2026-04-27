@@ -110,5 +110,53 @@
     "saveFreeText": true,
     "promptHintsFile": "templates/feedback-prompt-hints.json"
   },
+  "copilotBridge": {
+    "preferredAdapter": "file-injection",
+    "fallbackChain": ["file-injection", "gh-copilot-cli", "ui-automation"],
+    "vscodeWorkspacePath": null,
+    "taskName": "copilot-run-phase",
+    "uiAutomation": {
+      "enabled": false,
+      "tool": "xdotool",
+      "display": ":0",
+      "typingDelayMs": 25
+    },
+    "timeoutSeconds": 180,
+    "pollIntervalSeconds": 3
+  },
+  "codeExtraction": {
+    "stripMarkdownFences": true,
+    "stripPreambles": true,
+    "requireBalancedBraces": true,
+    "maxFileSizeKb": 200,
+    "diffDir": ".plan/copilot-diffs",
+    "forbiddenTokens": [
+      "TODO-COPILOT",
+      "PLACEHOLDER",
+      "<PROMPT>",
+      "your code here",
+      "implementiere dies",
+      "// ... rest of code",
+      "...existing code..."
+    ]
+  },
+  "safety": {
+    "writeScope": [
+      "~/GameDev-Projekte/<projectName>/**",
+      "~/.openclaw/workspace/memory/gamedev-*.json"
+    ],
+    "denyScope": [
+      "~/.ssh/**",
+      "/etc/**",
+      "/usr/**",
+      "~/.config/**",
+      "~/.openclaw/openclaw.json"
+    ],
+    "approvalMode": "auto-with-telegram-veto",
+    "vetoWindowSeconds": 20,
+    "maxFilesChangedPerPhase": 15,
+    "maxBytesPerFile": 204800,
+    "dryRunFirstRun": true
+  },
   "dryRun": false
 }

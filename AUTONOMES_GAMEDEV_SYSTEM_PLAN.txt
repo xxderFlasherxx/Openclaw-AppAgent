@@ -52,7 +52,7 @@ INHALTSVERZEICHNIS
     - Schritt 23: Mehrstufiges Memory-System
     - Schritt 24: User-Feedback-Integration
 
-  TEIL H: COPILOT-BRIDGE (TATSÄCHLICHE AUSFÜHRUNG)
+  > TEIL H: COPILOT-BRIDGE (TATSÄCHLICHE AUSFÜHRUNG)
     - Schritt 25: Prompt-Injection-Adapter (CLI / Datei / UI-Automation)
     - Schritt 26: Code-Extraktion und Accept-Handling
     - Schritt 27: Approval-Gates und Sicherheitsmodus

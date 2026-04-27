@@ -676,10 +676,44 @@ for needle in "Lockfile" "schemaVersion" "Atomic Writes" "Size-Limit"; do
 done
 
 # =============================================================================
+suite "31. Teil H – Copilot-Bridge / Extraction / Safety-Gates"
+# =============================================================================
+# Strukturen vorhanden
+assert_file_exists "$SKILL_DIR/pipeline/copilot-bridge.md"           "pipeline/copilot-bridge.md"
+assert_file_exists "$SKILL_DIR/pipeline/safety-gates.md"             "pipeline/safety-gates.md"
+assert_file_exists "$SKILL_DIR/tests/fixtures/copilot-bridge-cases.json" "fixtures/copilot-bridge-cases.json"
+assert_dir_exists  "$SKILL_DIR/tests/fixtures/extraction"            "fixtures/extraction/"
+
+# Sub-Test-Skripte
+for sh in test-copilot-bridge.sh test-code-extraction.sh test-safety-gates.sh; do
+  assert_file_exists "$SCRIPT_DIR/$sh" "tests/$sh vorhanden"
+  if bash -n "$SCRIPT_DIR/$sh" 2>/dev/null; then
+    _log_pass "Bash-Syntax OK: $sh"
+  else
+    _log_fail "Bash-Syntax OK: $sh" "Syntaxfehler"
+  fi
+done
+
+# Config-Blöcke
+for blk in copilotBridge codeExtraction safety; do
+  assert_jq_nonempty "$CFG" ".${blk}" "gamedev-config.json hat Block '${blk}'"
+done
+
+# Sub-Tests ausführen und Pass/Fail propagieren
+for sh in test-copilot-bridge.sh test-code-extraction.sh test-safety-gates.sh; do
+  out="$TMP_ROOT/${sh%.sh}.log"
+  if bash "$SCRIPT_DIR/$sh" > "$out" 2>&1; then
+    _log_pass "Sub-Tests durchgelaufen: $sh"
+  else
+    _log_fail "Sub-Tests durchgelaufen: $sh" "siehe $out"
+  fi
+done
+
+# =============================================================================
 # Opt-in: Online-Checks (nur mit --online)
 # =============================================================================
 if [ "$ONLINE" -eq 1 ]; then
-  suite "31. Online-Check: Ollama Cloud (Schwachstelle #7)"
+  suite "32. Online-Check: Ollama Cloud (Schwachstelle #7)"
   BASE=$(jq -r '.ollamaCloud.baseUrl' "$SKILL_DIR/gamedev-config.json")
   # Host-Erreichbarkeit
   host=$(echo "$BASE" | sed -E 's#^https?://##;s#/.*$##')

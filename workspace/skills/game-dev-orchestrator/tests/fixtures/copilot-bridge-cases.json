@@ -1,0 +1,113 @@
+{
+  "schemaVersion": 1,
+  "description": "Adapter-Auswahl- und Fallback-Szenarien für die Copilot-Bridge (Teil H, Schritt 25)",
+  "cases": [
+    {
+      "id": "A1_file_injection_ok",
+      "description": "Adapter A liefert direkt akzeptierten Code",
+      "input": {
+        "preferredAdapter": "file-injection",
+        "fallbackChain": ["file-injection", "gh-copilot-cli", "ui-automation"],
+        "vscodeWorkspacePath": "/tmp/proj-A1",
+        "adapterResults": {
+          "file-injection": "accepted"
+        }
+      },
+      "expected": {
+        "adapterUsed": "file-injection",
+        "status": "accepted",
+        "fallbackTried": ["file-injection"]
+      }
+    },
+    {
+      "id": "A2_file_injection_timeout",
+      "description": "Adapter A bricht im Timeout ab, kein weiterer Adapter aktiv → Phase scheitert",
+      "input": {
+        "preferredAdapter": "file-injection",
+        "fallbackChain": ["file-injection"],
+        "vscodeWorkspacePath": "/tmp/proj-A2",
+        "adapterResults": {
+          "file-injection": "timeout"
+        }
+      },
+      "expected": {
+        "adapterUsed": "file-injection",
+        "status": "rejected",
+        "reason": "timeout",
+        "fallbackTried": ["file-injection"]
+      }
+    },
+    {
+      "id": "B_falls_back_to_gh_cli",
+      "description": "Adapter A schlägt fehl (timeout), Adapter B liefert akzeptierten Code",
+      "input": {
+        "preferredAdapter": "file-injection",
+        "fallbackChain": ["file-injection", "gh-copilot-cli", "ui-automation"],
+        "vscodeWorkspacePath": "/tmp/proj-B",
+        "adapterResults": {
+          "file-injection": "timeout",
+          "gh-copilot-cli": "accepted"
+        }
+      },
+      "expected": {
+        "adapterUsed": "gh-copilot-cli",
+        "status": "accepted",
+        "fallbackTried": ["file-injection", "gh-copilot-cli"]
+      }
+    },
+    {
+      "id": "C_falls_back_to_ui_automation",
+      "description": "A und B scheitern, C (xdotool) übernimmt und liefert akzeptierten Code",
+      "input": {
+        "preferredAdapter": "file-injection",
+        "fallbackChain": ["file-injection", "gh-copilot-cli", "ui-automation"],
+        "vscodeWorkspacePath": "/tmp/proj-C",
+        "adapterResults": {
+          "file-injection": "timeout",
+          "gh-copilot-cli": "tool_unavailable",
+          "ui-automation": "accepted"
+        },
+        "uiAutomation": { "enabled": true, "tool": "xdotool" }
+      },
+      "expected": {
+        "adapterUsed": "ui-automation",
+        "status": "accepted",
+        "fallbackTried": ["file-injection", "gh-copilot-cli", "ui-automation"]
+      }
+    },
+    {
+      "id": "D_unknown_adapter_name",
+      "description": "Unbekannter Adapter-Name in fallbackChain → Konfigurationsfehler",
+      "input": {
+        "preferredAdapter": "voodoo-adapter",
+        "fallbackChain": ["voodoo-adapter"],
+        "vscodeWorkspacePath": "/tmp/proj-D",
+        "adapterResults": {}
+      },
+      "expected": {
+        "status": "config_error",
+        "reason": "unknown_adapter",
+        "adapterUsed": null
+      }
+    },
+    {
+      "id": "E_missing_workspace_path",
+      "description": "vscodeWorkspacePath ist null UND projectPath fehlt → Adapter A wird übersprungen, Adapter B übernimmt",
+      "input": {
+        "preferredAdapter": "file-injection",
+        "fallbackChain": ["file-injection", "gh-copilot-cli"],
+        "vscodeWorkspacePath": null,
+        "projectPath": null,
+        "adapterResults": {
+          "file-injection": "vscodeWorkspacePath_missing",
+          "gh-copilot-cli": "accepted"
+        }
+      },
+      "expected": {
+        "adapterUsed": "gh-copilot-cli",
+        "status": "accepted",
+        "fallbackTried": ["file-injection", "gh-copilot-cli"]
+      }
+    }
+  ]
+}
