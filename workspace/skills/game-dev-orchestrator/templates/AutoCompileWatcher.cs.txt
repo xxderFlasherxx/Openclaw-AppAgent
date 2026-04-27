@@ -3,32 +3,50 @@ using UnityEditor;
 using UnityEditor.Compilation;
 using System.IO;
 using System.Text;
+using System.Text.RegularExpressions;
 
 /// <summary>
-/// Unity Editor-Script das die Kompilierung überwacht und den Status
-/// in .plan/unity-status.json schreibt, damit Hans (OpenClaw) den
-/// Kompilierungsstatus auslesen kann.
+/// Unity-Editor-Script. Beobachtet Kompilierung und Runtime-Logs und
+/// schreibt für Hans (OpenClaw) zwei Status-Artefakte:
+///
+///   .plan/unity-status.json   – aktueller Zustand (überschrieben, atomar)
+///   .plan/error-log.jsonl     – Append-only NDJSON, eine Zeile pro Fehler
+///
+/// Zusätzlich wird die aktuelle Phase aus .plan/current-phase.json gelesen,
+/// damit jeder Eintrag dem richtigen Phase-Kontext zugeordnet werden kann
+/// (Teil I, Schritt 28 aus AUTONOMES_GAMEDEV_SYSTEM_PLAN.txt).
 /// </summary>
 [InitializeOnLoad]
 public class AutoCompileWatcher
 {
+    static string planDir;
     static string statusFile;
     static string errorLogFile;
+    static string currentPhaseFile;
+    static int    compileCount;
+    static int    errorCount;
 
     static AutoCompileWatcher()
     {
-        string planDir = Path.Combine(Application.dataPath, "..", ".plan");
+        planDir = Path.Combine(Application.dataPath, "..", ".plan");
         if (!Directory.Exists(planDir))
         {
             Directory.CreateDirectory(planDir);
         }
 
-        statusFile = Path.Combine(planDir, "unity-status.json");
-        errorLogFile = Path.Combine(planDir, "error-log.json");
+        statusFile       = Path.Combine(planDir, "unity-status.json");
+        errorLogFile     = Path.Combine(planDir, "error-log.jsonl");
+        currentPhaseFile = Path.Combine(planDir, "current-phase.json");
+
+        // Ensure error-log.jsonl exists (leer = noch keine Fehler).
+        if (!File.Exists(errorLogFile))
+        {
+            try { File.WriteAllText(errorLogFile, ""); } catch { /* ignore */ }
+        }
 
         CompilationPipeline.compilationFinished += OnCompilationFinished;
-        CompilationPipeline.compilationStarted += OnCompilationStarted;
-        Application.logMessageReceived += OnLogMessage;
+        CompilationPipeline.compilationStarted  += OnCompilationStarted;
+        Application.logMessageReceived          += OnLogMessage;
 
         WriteStatus("idle", "Unity Editor bereit.");
     }
@@ -40,9 +58,10 @@ public class AutoCompileWatcher
 
     static void OnCompilationFinished(object context)
     {
+        compileCount++;
         var messages = CompilationPipeline.GetCompilationMessages();
-        var errors = new StringBuilder();
-        int errorCount = 0;
+        var errors   = new StringBuilder();
+        int errs     = 0;
 
         if (messages != null)
         {
@@ -50,19 +69,22 @@ public class AutoCompileWatcher
             {
                 if (msg.type == CompilationMessageType.Error)
                 {
-                    errorCount++;
+                    errs++;
                     errors.AppendLine(msg.message);
+                    AppendErrorEntry("Error", msg.message, "", msg.file, msg.line);
                 }
             }
         }
 
-        if (errorCount == 0)
+        errorCount = errs;
+
+        if (errs == 0)
         {
             WriteStatus("success", "Kompilierung erfolgreich. Keine Fehler.");
         }
         else
         {
-            WriteStatus("error", $"{errorCount} Fehler: {errors.ToString().TrimEnd()}");
+            WriteStatus("error", errs + " Fehler: " + errors.ToString().TrimEnd());
         }
     }
 
@@ -70,37 +92,87 @@ public class AutoCompileWatcher
     {
         if (type == LogType.Error || type == LogType.Exception)
         {
-            string errorJson = JsonUtility.ToJson(new ErrorEntry
-            {
-                timestamp = System.DateTime.Now.ToString("o"),
-                message = condition,
-                stackTrace = stackTrace,
-                type = type.ToString()
-            });
-
-            File.AppendAllText(errorLogFile, errorJson + "\n");
+            string file; int line;
+            ExtractFileAndLine(stackTrace, out file, out line);
+            AppendErrorEntry(type.ToString(), condition, stackTrace, file, line);
+            errorCount++;
             WriteStatus("runtime-error", condition);
         }
     }
 
+    // -----------------------------------------------------------------------
+    // Phase-Kontext aus .plan/current-phase.json lesen (best-effort).
+    // -----------------------------------------------------------------------
+    static void ReadPhaseContext(out string project, out int phaseId)
+    {
+        project = "";
+        phaseId = -1;
+        try
+        {
+            if (!File.Exists(currentPhaseFile)) return;
+            string raw = File.ReadAllText(currentPhaseFile);
+            // Sehr einfacher Parser – wir wollen keine Newtonsoft-Abhängigkeit.
+            project = ExtractJsonString(raw, "project");
+            string pid = ExtractJsonNumber(raw, "currentPhaseId");
+            if (!string.IsNullOrEmpty(pid))
+            {
+                int.TryParse(pid, out phaseId);
+            }
+        }
+        catch { /* ignore – Phase-Kontext ist optional */ }
+    }
+
+    static string ExtractJsonString(string json, string key)
+    {
+        var m = Regex.Match(json, "\"" + Regex.Escape(key) + "\"\\s*:\\s*\"((?:\\\\.|[^\"\\\\])*)\"");
+        return m.Success ? m.Groups[1].Value : "";
+    }
+
+    static string ExtractJsonNumber(string json, string key)
+    {
+        var m = Regex.Match(json, "\"" + Regex.Escape(key) + "\"\\s*:\\s*(-?\\d+)");
+        return m.Success ? m.Groups[1].Value : "";
+    }
+
+    static void ExtractFileAndLine(string stackTrace, out string file, out int line)
+    {
+        file = "";
+        line = 0;
+        if (string.IsNullOrEmpty(stackTrace)) return;
+        var m = Regex.Match(stackTrace, @"(Assets/[^\s:()]+\.cs)(?::|\()(\d+)");
+        if (m.Success)
+        {
+            file = m.Groups[1].Value;
+            int.TryParse(m.Groups[2].Value, out line);
+        }
+    }
+
+    // -----------------------------------------------------------------------
+    // unity-status.json – atomarer Overwrite (Teil I, Schritt 28.1).
+    // -----------------------------------------------------------------------
     static void WriteStatus(string status, string message)
     {
-        string json = "{"
-            + "\"status\":\"" + status + "\","
-            + "\"message\":\"" + EscapeJson(message) + "\","
-            + "\"timestamp\":\"" + System.DateTime.Now.ToString("o") + "\""
-            + "}";
+        string project; int phaseId;
+        ReadPhaseContext(out project, out phaseId);
 
-        // Atomar schreiben: erst in .tmp, dann umbenennen, damit Hans niemals
-        // eine halb-geschriebene Datei liest (Race-Condition, Schwachstelle #12).
+        var sb = new StringBuilder();
+        sb.Append("{");
+        sb.Append("\"status\":\"").Append(status).Append("\",");
+        sb.Append("\"message\":\"").Append(EscapeJson(message)).Append("\",");
+        sb.Append("\"timestamp\":\"").Append(System.DateTime.UtcNow.ToString("o")).Append("\",");
+        sb.Append("\"phaseId\":").Append(phaseId < 0 ? "null" : phaseId.ToString()).Append(",");
+        sb.Append("\"project\":\"").Append(EscapeJson(project)).Append("\",");
+        sb.Append("\"compileCount\":").Append(compileCount).Append(",");
+        sb.Append("\"errorCount\":").Append(errorCount);
+        sb.Append("}");
+        string json = sb.ToString();
+
         try
         {
             string tmp = statusFile + ".tmp";
             File.WriteAllText(tmp, json);
             if (File.Exists(statusFile))
             {
-                // File.Replace ist auf allen .NET-Plattformen atomic,
-                // File.Move überschreibt ab .NET Core 3.0 mit overwrite: true.
                 File.Replace(tmp, statusFile, null);
             }
             else
@@ -110,9 +182,46 @@ public class AutoCompileWatcher
         }
         catch (System.Exception e)
         {
-            Debug.LogWarning($"[AutoCompileWatcher] Konnte Status nicht schreiben: {e.Message}");
-            // Fallback: direkter Write (besser als gar kein Status)
+            Debug.LogWarning("[AutoCompileWatcher] Status-Write fehlgeschlagen: " + e.Message);
             try { File.WriteAllText(statusFile, json); } catch { /* ignore */ }
+        }
+    }
+
+    // -----------------------------------------------------------------------
+    // error-log.jsonl – Append-Only NDJSON (Teil I, Schritt 28.1).
+    // -----------------------------------------------------------------------
+    static void AppendErrorEntry(string type, string message, string stackTrace,
+                                 string file, int line)
+    {
+        string project; int phaseId;
+        ReadPhaseContext(out project, out phaseId);
+
+        var sb = new StringBuilder();
+        sb.Append("{");
+        sb.Append("\"timestamp\":\"").Append(System.DateTime.UtcNow.ToString("o")).Append("\",");
+        sb.Append("\"phaseId\":").Append(phaseId < 0 ? "null" : phaseId.ToString()).Append(",");
+        sb.Append("\"project\":\"").Append(EscapeJson(project)).Append("\",");
+        sb.Append("\"type\":\"").Append(EscapeJson(type)).Append("\",");
+        sb.Append("\"message\":\"").Append(EscapeJson(message)).Append("\",");
+        sb.Append("\"stackTrace\":\"").Append(EscapeJson(stackTrace ?? "")).Append("\",");
+        sb.Append("\"file\":\"").Append(EscapeJson(file ?? "")).Append("\",");
+        sb.Append("\"line\":").Append(line);
+        sb.Append("}\n");
+
+        try
+        {
+            // Append ist bei NDJSON konzeptuell atomar pro Zeile, solange wir
+            // mit FileShare.Read öffnen und immer mit '\n' enden.
+            using (var fs = new FileStream(errorLogFile, FileMode.Append,
+                                           FileAccess.Write, FileShare.Read))
+            {
+                byte[] bytes = Encoding.UTF8.GetBytes(sb.ToString());
+                fs.Write(bytes, 0, bytes.Length);
+            }
+        }
+        catch (System.Exception e)
+        {
+            Debug.LogWarning("[AutoCompileWatcher] Append error-log fehlgeschlagen: " + e.Message);
         }
     }
 
@@ -124,14 +233,5 @@ public class AutoCompileWatcher
                 .Replace("\n", "\\n")
                 .Replace("\r", "\\r")
                 .Replace("\t", "\\t");
-    }
-
-    [System.Serializable]
-    class ErrorEntry
-    {
-        public string timestamp;
-        public string message;
-        public string stackTrace;
-        public string type;
     }
 }

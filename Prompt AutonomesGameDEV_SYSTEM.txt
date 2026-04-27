@@ -1,0 +1,4 @@
+Also gut, du hast den Plan angehangen bekommen, dort sind bestimmte Teile abgehackt, das siehst du an dem ">". 
+Du sollst nun mit dem Nächsten Plan Teil weitermachen, Es ist wichtig, dass du den Aufbau erstmal verstehst. Mach dann den Teil I weiter, du sollst immer nur einen Teil auf einmal machen. Sag mir am ende, was du gemacht, hast, wieso du es gemacht hast (anhand des Plans) und Prüfe noch einmal ob alles Klappt.
+Such mir dann noch raus, ob es irgendwelche verbesserungsoptionen gibt, falls ja, mach diese direkt und dann machst du das noch einmal, schaust noch einmal nach möglichen verbesserungen / Fehlern und löst diese / Kümmerst dich drum!
+Teste dann außerdem noch selber per Terminal / Eigenen browser,... ob die ganze Idee bis zum Aktuellen Teil funktioniert und ob alles soweit läuft. Hake im anschluss noch den Teil ab, den du gemacht hast (also im Plan oben)!

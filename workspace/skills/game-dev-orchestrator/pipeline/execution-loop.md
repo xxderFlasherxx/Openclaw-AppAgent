@@ -139,6 +139,54 @@ FUNKTION: executePhase(phaseId, projectPath, masterPlan)
 ENDE
 ```
 
+## Verifikation (State `VERIFYING`)
+
+Quelle: Teil I, Schritt 30.2.
+
+Nachdem `executePhase` mit `RETURN "VERIFYING"` endet, ruft die
+State-Machine in einer Polling-Schleife `onVerifyPhase()` aus
+[error-correction.md – Sektion *Wiring*](./error-correction.md#wiring-unity-→-hans-→-günther)
+auf. Pseudocode:
+
+```
+WHILE state == "VERIFYING":
+  result = onVerifyPhase(projectPath, currentPhase, currentAttempt)
+
+  SWITCH result.decision:
+    CASE "PHASE_DONE":
+      state = "PHASE_DONE"
+      BREAK
+
+    CASE "WAIT":
+      sleep(config.phases.pollingIntervalSeconds)
+      // bleibt in VERIFYING
+
+    CASE "CORRECTING":
+      // Wichtig: logRoutingDecision() wurde in onVerifyPhase mit
+      // isCorrection=true aufgerufen – damit erscheint der
+      // Korrektur-Prompt als separater Eintrag in
+      // .plan/model-usage.json (Kosten-Tracking, Teil G/22).
+      currentAttempt = currentAttempt + 1
+
+      IF currentAttempt > config.phases.maxRetriesPerPhase:
+        createIncidentReport(currentPhase.id, currentPhase.name,
+                             getErrorHistory())
+        state = "AWAITING_USER_HELP"
+        BREAK
+
+      runCorrection(result.correctionPrompt, result.model)
+      state = "EXECUTING"
+      BREAK
+  END SWITCH
+END WHILE
+```
+
+`runCorrection` ist eine schmale Variante von `executePhase`: gleiche
+Bridge, aber statt Günthers `phase-transition`-Prompt wird direkt
+`result.correctionPrompt` injiziert.
+
+
+
 ## Prompt-Header Builder
 
 Der Prompt-Header ist der Kommentar-Block der an den Anfang jeder

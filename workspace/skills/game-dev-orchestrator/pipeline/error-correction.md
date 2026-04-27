@@ -509,3 +509,101 @@ FUNKTION: selectModelForCorrection(error, attempt)
 
 ENDE
 ```
+
+## Wiring: Unity → Hans → Günther
+
+Quelle: `AUTONOMES_GAMEDEV_SYSTEM_PLAN.txt` → Teil I, Schritt 30.1.
+
+Diese Sektion verbindet Watcher (Schritt 28/29), Günthers
+Fehler-Analyse (Schritt 10) und die Korrektur-Schleife (Schritt 15)
+zu einer einzigen Funktion. Sie wird aus `pipeline/execution-loop.md`
+(State `VERIFYING`) heraus aufgerufen.
+
+```
+FUNKTION onVerifyPhase(projectPath, currentPhase, currentAttempt):
+
+  // 1. Aktuellen Unity-Status lesen (siehe unity-watcher.md).
+  status = readJson(projectPath + "/.plan/unity-status.json")
+
+  IF status.status == "success":
+    RETURN { decision: "PHASE_DONE" }
+
+  IF status.status NOT IN ["error", "runtime-error", "failed", "timeout"]:
+    // compiling / idle → noch warten
+    RETURN { decision: "WAIT" }
+
+  // 2. Letzte N Error-Einträge tailen (NDJSON).
+  errs = tailJsonl(projectPath + "/.plan/error-log.jsonl", lastN = 5)
+
+  // 3. Nutzlast für Günther bauen.
+  payload = {
+    phaseId:     currentPhase.id,
+    phaseName:   currentPhase.name,
+    attempt:     currentAttempt,
+    errors:      errs,
+    sourceFiles: readChangedFiles(projectPath, currentPhase)
+  }
+
+  // 4. Architekt-Analyse anfordern (siehe Schritt 10 / error-analysis.txt).
+  analysis = gunther.analyzeError(payload)
+  // analysis = { errorType, rootCause, correctionPrompt,
+  //              affectedFile, severity }
+
+  // 5. Modell-Routing (Teil G, Schritt 22).
+  // Bei severity=critical schalten wir manuell auf Opus hoch,
+  // sonst greift die normale selectModelForCorrection-Logik.
+  override = (analysis.severity == "critical") ? "opus" : null
+  nextModel = selectModel(
+    phase       = currentPhase,
+    retryCount  = currentAttempt + 1,
+    override    = override
+  )
+
+  // 6. Routing-Entscheidung loggen (separater Eintrag pro Korrektur,
+  //    wichtig für Kosten-Tracking).
+  logRoutingDecision(
+    phaseId:    currentPhase.id,
+    model:      nextModel,
+    reason:     "error-correction:" + analysis.errorType,
+    isCorrection: true
+  )
+
+  // 7. Decision an die State-Machine zurückgeben.
+  RETURN {
+    decision:         "CORRECTING",
+    correctionPrompt: analysis.correctionPrompt,
+    model:            nextModel,
+    severity:         analysis.severity,
+    affectedFile:     analysis.affectedFile,
+    sourceErrors:     errs
+  }
+
+ENDE
+```
+
+### Eskalation nach 5 Versuchen
+
+`onVerifyPhase` selbst zählt nicht – das tut die State-Machine
+(`master-orchestrator.md`). Wird `currentAttempt + 1 > maxRetriesPerPhase`,
+ruft die Pipeline `createIncidentReport(...)` aus dieser Datei auf
+(siehe oben) und wechselt in `AWAITING_USER_HELP` (Schritt 15.3).
+
+### Datentransport-Regeln
+
+- `errs` enthält **immer** den vollständigen Eintrag aus
+  `error-log.jsonl` (inkl. `file`, `line`, `stackTrace`).
+- `correctionPrompt` wird unverändert an die Copilot-Bridge übergeben
+  (keine zusätzliche Vorlagenverarbeitung – Günther liefert finalen Text).
+- Kein Schreibzugriff auf `error-log.jsonl` aus Hans heraus außer
+  durch den Initializer (Append-Only-Vertrag).
+
+### Test-Fixtures
+
+- `tests/fixtures/error-log.cs0246.jsonl` – Compile-Error CS0246.
+- `tests/fixtures/error-log.nullref.jsonl` – Runtime NullReference.
+- `tests/fixtures/error-log.timeout.jsonl` – kein Inhalt
+  (Timeout-Pfad).
+
+`tests/test-error-pipeline.sh` validiert für jede Fixture, dass
+`onVerifyPhase` (mockt `gunther.analyzeError`) den korrekten
+`correctionPrompt` und das richtige Modell liefert.

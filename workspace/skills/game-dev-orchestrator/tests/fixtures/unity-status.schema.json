@@ -8,11 +8,15 @@
   "properties": {
     "status": {
       "type": "string",
-      "enum": ["idle", "compiling", "success", "error", "runtime-error", "failed"]
+      "enum": ["idle", "compiling", "success", "error", "runtime-error", "failed", "timeout"]
     },
     "message": { "type": "string" },
     "timestamp": { "type": "string", "minLength": 1 },
-    "size":   { "type": ["string", "number", "null"] },
-    "errors": { "type": ["integer", "null"] }
+    "phaseId":      { "type": ["integer", "null"] },
+    "project":      { "type": ["string", "null"] },
+    "compileCount": { "type": ["integer", "null"] },
+    "errorCount":   { "type": ["integer", "null"] },
+    "size":         { "type": ["string", "number", "null"] },
+    "errors":       { "type": ["integer", "null"] }
   }
 }

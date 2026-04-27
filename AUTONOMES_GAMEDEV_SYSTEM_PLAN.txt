@@ -57,7 +57,7 @@ INHALTSVERZEICHNIS
     - Schritt 26: Code-Extraktion und Accept-Handling
     - Schritt 27: Approval-Gates und Sicherheitsmodus
 
-  TEIL I: UNITY-RUNTIME-WATCHER (TATSÄCHLICHE AUSFÜHRUNG)
+  > TEIL I: UNITY-RUNTIME-WATCHER (TATSÄCHLICHE AUSFÜHRUNG)
     - Schritt 28: AutoCompileWatcher im Projekt deployen
     - Schritt 29: Batchmode-Kompilierung als Fallback
     - Schritt 30: Fehler-Pipeline Unity -> Hans -> Günther

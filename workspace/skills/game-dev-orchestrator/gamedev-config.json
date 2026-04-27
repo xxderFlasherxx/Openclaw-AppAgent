@@ -10,7 +10,13 @@
     "version": "2022.3",
     "renderPipeline": "URP",
     "buildTarget": "StandaloneLinux64",
-    "batchModeFlags": "-batchmode -nographics -quit"
+    "batchModeFlags": "-batchmode -nographics -quit",
+    "mode": "auto",
+    "editorBinary": "",
+    "batchLogFile": ".plan/unity-batch.log",
+    "statusFile": ".plan/unity-status.json",
+    "errorLogFile": ".plan/error-log.jsonl",
+    "compileTimeoutSeconds": 180
   },
   "models": {
     "architect": "qwen3-coder-next",

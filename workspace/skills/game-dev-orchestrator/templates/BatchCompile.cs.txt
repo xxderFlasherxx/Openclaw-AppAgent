@@ -1,0 +1,45 @@
+using UnityEditor;
+using UnityEditor.Compilation;
+using System.IO;
+
+namespace OpenClaw
+{
+    /// <summary>
+    /// Batchmode-Hilfs-Script. Wird vom CLI per
+    ///     Unity -batchmode -quit -projectPath <PROJECT> \
+    ///           -executeMethod OpenClaw.BatchCompile.Run
+    /// aufgerufen. Erzwingt eine Skript-Kompilierung und schließt
+    /// den Editor mit Exit-Code 0 (bei Erfolg) bzw. != 0 bei Fehler.
+    ///
+    /// Teil I, Schritt 29.2 (AUTONOMES_GAMEDEV_SYSTEM_PLAN.txt).
+    /// </summary>
+    public static class BatchCompile
+    {
+        public static void Run()
+        {
+            try
+            {
+                // Marker-Datei – Hans erkennt damit, dass die Methode
+                // tatsächlich ausgeführt wurde (nicht nur Unity geöffnet).
+                string planDir = Path.Combine(
+                    Directory.GetCurrentDirectory(), ".plan");
+                if (!Directory.Exists(planDir))
+                {
+                    Directory.CreateDirectory(planDir);
+                }
+                File.WriteAllText(
+                    Path.Combine(planDir, "unity-batch.marker"),
+                    System.DateTime.UtcNow.ToString("o"));
+
+                CompilationPipeline.RequestScriptCompilation();
+            }
+            catch (System.Exception e)
+            {
+                System.Console.Error.WriteLine("[BatchCompile] " + e.Message);
+                EditorApplication.Exit(2);
+                return;
+            }
+            EditorApplication.Exit(0);
+        }
+    }
+}

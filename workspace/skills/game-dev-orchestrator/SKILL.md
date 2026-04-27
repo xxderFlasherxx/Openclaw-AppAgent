@@ -319,6 +319,8 @@ Detailliert in: `pipeline/context-management.md`
 - `pipeline/model-routing.md` → Haiku/Sonnet/Opus-Routing + Kosten-Tracking
 - `pipeline/memory-system.md` → Drei-Ebenen-Memory + Pattern-Library
 - `pipeline/user-feedback.md` → Telegram-Rating-Flow + Prompt-Hints
+- `pipeline/unity-watcher.md` → Watcher-Schemas (`unity-status.json`, `error-log.jsonl`) + Batchmode (Teil I, Schritt 28-29)
+- `pipeline/project-init.md` → Schritt-für-Schritt-Init inkl. Watcher-Deployment (Teil I, Schritt 28.2)
 
 ### Referenzen
 - `references/ollama-api.txt` → API-Dokumentation
@@ -347,7 +349,8 @@ Detailliert in: `pipeline/context-management.md`
 - `templates/unity-editorconfig.txt` → .editorconfig Template
 - `templates/base-game-manager.cs.txt` → GameManager Template
 - `templates/base-player-controller.cs.txt` → PlayerController Template
-- `templates/AutoCompileWatcher.cs.txt` → Unity Compile Watcher
+- `templates/AutoCompileWatcher.cs.txt` → Unity Compile Watcher (Teil I, Schritt 28: schreibt atomar nach `.plan/unity-status.json` und appendet NDJSON nach `.plan/error-log.jsonl`)
+- `templates/BatchCompile.cs.txt` → Batchmode-Hilfs-Editor-Script (Teil I, Schritt 29: `OpenClaw.BatchCompile.Run`)
 
 ### Basis-Templates (Teil E - Schritt 17)
 - `templates/Singleton.cs.txt` → Generisches Singleton-Pattern

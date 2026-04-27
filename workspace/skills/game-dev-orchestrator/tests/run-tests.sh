@@ -236,8 +236,16 @@ done
 # =============================================================================
 suite "15. Workspace-Integration (Teil B, Schritt 2)"
 # =============================================================================
-WS="/home/vboxuser/.openclaw/workspace"
-OC_CFG="/home/vboxuser/.openclaw/openclaw.json"
+# Workspace-Pfad aus gamedev-config.json (mit Fallback auf Repo-Default).
+WS="$(jq -r '.paths.openclawWorkspace // ""' "$SKILL_DIR/gamedev-config.json")"
+if [ -z "$WS" ] || [ ! -d "$WS" ]; then
+  WS="$(cd "$SKILL_DIR/../.." && pwd)"
+fi
+# openclaw.json: erst neben dem Workspace, dann Legacy-Pfad.
+if   [ -f "$WS/../openclaw.json" ];                  then OC_CFG="$(cd "$WS/.." && pwd)/openclaw.json"
+elif [ -f "/home/vboxuser/.openclaw/openclaw.json" ]; then OC_CFG="/home/vboxuser/.openclaw/openclaw.json"
+else OC_CFG="$WS/../openclaw.json"
+fi
 for f in AGENTS.md SOUL.md USER.md TOOLS.md IDENTITY.md; do
   assert_file_exists "$WS/$f" "Workspace/$f vorhanden"
 done
@@ -546,7 +554,7 @@ assert_file_exists "$SKILL_DIR/templates/gamedev-patterns.json"                 
 assert_json_valid  "$SKILL_DIR/templates/gamedev-projects.json"                 "gamedev-projects.json template valide"
 assert_json_valid  "$SKILL_DIR/templates/gamedev-patterns.json"                 "gamedev-patterns.json template valide"
 
-WSMEM="/home/vboxuser/.openclaw/workspace/memory"
+WSMEM="$WS/memory"
 assert_file_exists "$WSMEM/gamedev-projects.json"  "workspace/memory/gamedev-projects.json"
 assert_file_exists "$WSMEM/gamedev-patterns.json"  "workspace/memory/gamedev-patterns.json"
 assert_json_valid  "$WSMEM/gamedev-projects.json"  "gamedev-projects.json (workspace) valide"
@@ -710,10 +718,44 @@ for sh in test-copilot-bridge.sh test-code-extraction.sh test-safety-gates.sh; d
 done
 
 # =============================================================================
+suite "32. Teil I – Unity-Runtime-Watcher (Schritte 28-30)"
+# =============================================================================
+# Sub-Tests ausführen und Pass/Fail propagieren
+for sh in test-unity-watcher.sh test-unity-batchmode.sh test-error-pipeline.sh; do
+  assert_file_exists "$SCRIPT_DIR/$sh" "tests/$sh vorhanden"
+  if bash -n "$SCRIPT_DIR/$sh" 2>/dev/null; then
+    _log_pass "Bash-Syntax OK: $sh"
+  else
+    _log_fail "Bash-Syntax OK: $sh" "Syntaxfehler"
+  fi
+  out="$TMP_ROOT/${sh%.sh}.log"
+  if bash "$SCRIPT_DIR/$sh" > "$out" 2>&1; then
+    _log_pass "Sub-Tests durchgelaufen: $sh"
+  else
+    _log_fail "Sub-Tests durchgelaufen: $sh" "siehe $out"
+  fi
+done
+
+# Pflicht-Artefakte aus Schritt 28/29
+assert_file_exists "$SKILL_DIR/templates/BatchCompile.cs.txt"          "templates/BatchCompile.cs.txt"
+assert_file_exists "$SKILL_DIR/pipeline/unity-watcher.md"              "pipeline/unity-watcher.md"
+assert_file_exists "$SKILL_DIR/pipeline/project-init.md"               "pipeline/project-init.md"
+assert_file_exists "$SCRIPT_DIR/fixtures/error-log-entry.schema.json"  "fixtures/error-log-entry.schema.json"
+
+# Config-Erweiterung Schritt 29.3
+for k in mode batchLogFile statusFile errorLogFile compileTimeoutSeconds; do
+  if jq -e "(.unity | has(\"$k\"))" "$CFG" >/dev/null; then
+    _log_pass "gamedev-config.json: unity.${k} vorhanden"
+  else
+    _log_fail "gamedev-config.json: unity.${k} vorhanden" "fehlt"
+  fi
+done
+
+# =============================================================================
 # Opt-in: Online-Checks (nur mit --online)
 # =============================================================================
 if [ "$ONLINE" -eq 1 ]; then
-  suite "32. Online-Check: Ollama Cloud (Schwachstelle #7)"
+  suite "33. Online-Check: Ollama Cloud (Schwachstelle #7)"
   BASE=$(jq -r '.ollamaCloud.baseUrl' "$SKILL_DIR/gamedev-config.json")
   # Host-Erreichbarkeit
   host=$(echo "$BASE" | sed -E 's#^https?://##;s#/.*$##')
