@@ -62,7 +62,7 @@ INHALTSVERZEICHNIS
     - Schritt 29: Batchmode-Kompilierung als Fallback
     - Schritt 30: Fehler-Pipeline Unity -> Hans -> Günther
 
-  TEIL J: AUTONOMER END-TO-END-LAUF
+  > TEIL J: AUTONOMER END-TO-END-LAUF
     - Schritt 31: Telegram-Trigger und Run-Kommandos
     - Schritt 32: Daemon-Loop und Zustandspersistenz
     - Schritt 33: Notfall-Halt, Budget- und Zeitlimits

@@ -1,0 +1,98 @@
+{
+  "events": [
+    {
+      "name": "newgame_valid",
+      "input": "/newgame Bau mir ein Spiel wie The Long Drive mit Katzen",
+      "expectedCommand": "/newgame",
+      "expectedArgs": "Bau mir ein Spiel wie The Long Drive mit Katzen",
+      "valid": true,
+      "fromState": "WAITING",
+      "expectedTransition": "ANALYZING"
+    },
+    {
+      "name": "newgame_too_short",
+      "input": "/newgame ab",
+      "expectedCommand": "/newgame",
+      "valid": false,
+      "validationError": "args_too_short"
+    },
+    {
+      "name": "status_anywhere",
+      "input": "/status",
+      "expectedCommand": "/status",
+      "valid": true,
+      "fromState": "EXECUTING",
+      "expectedTransition": null
+    },
+    {
+      "name": "abort_with_reason",
+      "input": "/abort Strom alle",
+      "expectedCommand": "/abort",
+      "expectedArgs": "Strom alle",
+      "valid": true,
+      "fromState": "EXECUTING",
+      "expectedTransition": "ABORTED"
+    },
+    {
+      "name": "approve_valid_hash",
+      "input": "/approve a1b2c3d4e5f6",
+      "expectedCommand": "/approve",
+      "expectedArgs": "a1b2c3d4e5f6",
+      "valid": true,
+      "fromState": "PLANNING",
+      "expectedTransition": "INITIALIZING"
+    },
+    {
+      "name": "approve_invalid_hash",
+      "input": "/approve XYZ",
+      "expectedCommand": "/approve",
+      "valid": false,
+      "validationError": "hash_format"
+    },
+    {
+      "name": "rating_valid",
+      "input": "/rating 5 super geil",
+      "expectedCommand": "/rating",
+      "valid": true,
+      "fromState": "AWAITING_FEEDBACK",
+      "expectedTransition": "DONE"
+    },
+    {
+      "name": "rating_out_of_range",
+      "input": "/rating 9",
+      "expectedCommand": "/rating",
+      "valid": false,
+      "validationError": "rating_range"
+    },
+    {
+      "name": "case_insensitive",
+      "input": "/STATUS",
+      "expectedCommand": "/status",
+      "valid": true
+    },
+    {
+      "name": "unknown_command",
+      "input": "/explode",
+      "expectedCommand": "/explode",
+      "valid": false,
+      "validationError": "unknown_command"
+    },
+    {
+      "name": "implicit_freetext",
+      "input": "Bau mir ein Spiel mit Katzen die fahren",
+      "expectedCommand": "<freitext>",
+      "expectedArgs": "Bau mir ein Spiel mit Katzen die fahren",
+      "valid": true,
+      "fromState": "WAITING",
+      "expectedTransition": "ANALYZING"
+    },
+    {
+      "name": "skip_in_wrong_state",
+      "input": "/skip",
+      "expectedCommand": "/skip",
+      "valid": false,
+      "fromState": "WAITING",
+      "validationError": "command_not_allowed_in_state"
+    }
+  ]
+}

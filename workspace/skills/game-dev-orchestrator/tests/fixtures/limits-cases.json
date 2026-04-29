@@ -1,0 +1,44 @@
+{
+  "scenarios": [
+    {
+      "name": "budget_exhausted_run",
+      "modelUsage":      { "totalUsd": 4.80, "byPhase": { "3": 0.20 } },
+      "plannedCallUsd":   0.30,
+      "limits":          { "maxCostUsdPerRun": 5.00, "maxCostUsdPerPhase": 1.00 },
+      "expected":        { "action": "halt", "reason": "budget_exhausted_run" }
+    },
+    {
+      "name": "budget_phase_downgrade",
+      "modelUsage":      { "totalUsd": 1.20, "byPhase": { "3": 0.95 } },
+      "plannedCallUsd":   0.20,
+      "plannedModel":     "sonnet",
+      "limits":          { "maxCostUsdPerRun": 5.00, "maxCostUsdPerPhase": 1.00 },
+      "expected":        { "action": "use_model", "model": "haiku" }
+    },
+    {
+      "name": "killswitch_present",
+      "killSwitchFile":  "STOP_GAMEDEV",
+      "expected":        { "action": "halt", "reason": "killswitch" }
+    },
+    {
+      "name": "wallclock_exceeded",
+      "startedAtMinutesAgo": 181,
+      "limits":          { "maxWallclockMinutesPerRun": 180 },
+      "expected":        { "action": "halt", "reason": "wallclock_exceeded" }
+    },
+    {
+      "name": "retries_exhausted",
+      "totalRetries":    25,
+      "limits":          { "maxTotalRetriesPerRun": 25 },
+      "expected":        { "action": "halt", "reason": "retries_exhausted" }
+    },
+    {
+      "name": "ok_proceed",
+      "modelUsage":      { "totalUsd": 0.10, "byPhase": { "1": 0.05 } },
+      "plannedCallUsd":   0.20,
+      "plannedModel":     "sonnet",
+      "limits":          { "maxCostUsdPerRun": 5.00, "maxCostUsdPerPhase": 1.00 },
+      "expected":        { "action": "proceed" }
+    }
+  ]
+}

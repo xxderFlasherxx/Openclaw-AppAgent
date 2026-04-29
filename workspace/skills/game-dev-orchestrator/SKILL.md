@@ -288,16 +288,26 @@ Detailliert in: `pipeline/context-management.md`
 
 ## User-Befehle (während Pipeline)
 
-| Befehl         | Aktion                                    |
-|----------------|-------------------------------------------|
-| "Pause"        | Pipeline anhalten, State speichern        |
-| "Weiter"       | Pipeline an letzter Stelle fortsetzen     |
-| "Stopp"        | Pipeline komplett abbrechen               |
-| "Projektstand" | Aktuelle Phase, Status, Statistiken       |
-| "/skip"        | Aktuelle Phase überspringen               |
-| "/reset-phase" | Aktuelle Phase komplett neu starten       |
-| "/manual"      | User übernimmt aktuelle Phase             |
-| "Code zeigen"  | Aktuellen Code der Phase senden           |
+| Befehl          | Aktion                                                |
+|-----------------|-------------------------------------------------------|
+| `/newgame`      | Neuen Run starten (auch implizit per Freitext)        |
+| `/status`       | Aktuelle Phase, State, Kosten, Wallclock              |
+| `/phases`       | Phasen-Liste mit ✓/●/○-Status                         |
+| `/pause`        | Pipeline anhalten, State atomar speichern             |
+| `/resume`       | Pipeline an letzter Stelle fortsetzen                 |
+| `/abort`        | Run komplett abbrechen (`reason` optional)            |
+| `/approve <h>`  | Plan/Run mit Hash-Bestätigung freigeben               |
+| `/rating 1-5`   | Run-Rating für Lessons-Learned übergeben              |
+| `/realrun`      | Aus Dry-Run in Real-Run wechseln                      |
+| `/dryrun`       | Zurück in Dry-Run wechseln                            |
+| `/skip`         | Aktuelle Phase überspringen                           |
+| `/reset-phase`  | Aktuelle Phase komplett neu starten                   |
+| `/manual`       | User übernimmt aktuelle Phase                         |
+
+Vollständige Erlaubnis-Matrix pro State und Parser-Regeln:
+[telegram-commands.md](pipeline/telegram-commands.md). Hard-Killswitch
+out-of-band: `touch /home/vboxuser/.openclaw/STOP_GAMEDEV` (siehe
+[budget-limits.md](pipeline/budget-limits.md)).
 
 ## Referenz-Dateien
 
@@ -683,4 +693,93 @@ Im `unity`-Block (Teil I):
 - `statusFile` — `.plan/unity-status.json`
 - `errorLogFile` — `.plan/error-log.jsonl`
 - `compileTimeoutSeconds` — Default 180
+
+
+## Autonomer End-to-End-Lauf (Teil J)
+
+Mit Teil J wird aus dem Skill ein **echter Daemon-Workflow**: Telegram als
+Eingangskanal, Tick-Loop für die Ausführung, harte Limits gegen Run-Away-
+Kosten/-Zeit.
+
+### 1. Telegram-Trigger & Run-Kommandos (Schritt 31)
+
+Detailliert in: `pipeline/telegram-commands.md`
+
+Vollständiges Kommando-Set: `/newgame`, `/status`, `/phases`, `/pause`,
+`/resume`, `/abort`, `/approve`, `/rating`, `/realrun`, `/dryrun`,
+`/skip`, `/reset-phase`, `/manual`. Jede Phase definiert eine
+**State-Erlaubnis-Matrix** — Kommandos in unzulässigen States werden
+mit Hilfe-Antwort quittiert (kein State-Wechsel).
+
+Konfiguriert in `gamedev-config.json → telegram`.
+
+### 2. Daemon-Loop & Zustandspersistenz (Schritt 32)
+
+Detailliert in: `pipeline/master-orchestrator.md` Sektion *Tick-Loop*
+
+- `onTick()` läuft alle `daemon.tickIntervalSeconds` (Default 5 s).
+- Reihenfolge: Killswitch → Wallclock → Retries → Pause → Telegram-Inbox
+  → State-Aktion → Persistenz.
+- **Atomare Persistenz** via `writeJsonAtomic` (write-tmp + `rename`)
+  in `.plan/orchestrator-state.json` und
+  `workspace/memory/gamedev-state.json`.
+- **Crash-Recovery**: Beim Daemon-Boot prüft Hans `gamedev-state.json`;
+  bei offenem Run schickt er einen Telegram-Recovery-Prompt.
+- **Exception-Backoff**: 5 / 30 / 120 s, nach 3 Fehlern → `ABORTED`.
+
+Konfiguriert in `gamedev-config.json → daemon`.
+
+### 3. Notfall-Halt, Budget- & Zeitlimits (Schritt 33)
+
+Detailliert in: `pipeline/budget-limits.md`
+
+- **Killswitch-Datei** (`limits.killSwitchFile`): `touch ~/.openclaw/STOP_GAMEDEV`
+  → nächster Tick stoppt den Run und löscht die Datei.
+- **Cost-Enforcement**: pro Run (`maxCostUsdPerRun = 5.00`) und pro
+  Phase (`maxCostUsdPerPhase = 1.00`). Phase-Überschreitung versucht
+  Modell-Downgrade (Sonnet → Haiku), bevor sie haltet.
+- **Wallclock**: `maxWallclockMinutesPerRun = 180`.
+- **Retry-Cap**: `maxRetriesPerPhase = 5`, `maxTotalRetriesPerRun = 25`.
+- Halt-Reasons werden in `.plan/halt-log.jsonl` mit fixem Schema
+  (`tests/fixtures/halt-log-entry.schema.json`) protokolliert.
+
+### Neue Pipeline-Dokumente (Teil J)
+
+- `pipeline/telegram-commands.md` → Kommando-Vokabular, Parser, Erlaubnis-Matrix
+- `pipeline/budget-limits.md`     → Killswitch, Cost-/Wallclock-Enforcement, Halt-Reasons
+- `pipeline/master-orchestrator.md` → erweitert um Sektion *Tick-Loop*
+
+### Neue Tests (Teil J)
+
+- `tests/test-telegram-commands.sh` → Parser, Validierung, State-Matrix (12 Fixture-Events)
+- `tests/test-daemon-loop.sh`        → Tick-Loop-Doc, atomare Persistenz, Recovery, Pause
+- `tests/test-limits.sh`             → Cost-/Wallclock-/Retry-Caps, Killswitch, Halt-Log
+- `tests/fixtures/telegram-events.json`
+- `tests/fixtures/limits-cases.json`
+- `tests/fixtures/halt-log-entry.schema.json`
+
+### Erweiterte Config (`gamedev-config.json`) — Teil J
+
+Drei neue Top-Level-Blöcke:
+- `limits` — Cost/Wallclock/Retry-Caps + Killswitch-Pfad
+- `telegram` — Inbox-Drain-Limit, implizites `/newgame` bei Freitext
+- `daemon` — Tick-Intervall, Heartbeat-Datei, Exception-Backoff
+
+### End-to-End-Ablauf
+
+```
+/newgame Bau mir ein Spiel wie The Long Drive mit Katzen
+  ↓
+ANALYZING → PLANNING (Günther: 10 Phasen)
+  ↓                  ↑ Plan-Hash via Telegram, 20 s Veto-Fenster
+INITIALIZING → EXECUTING ↔ VERIFYING ↔ CORRECTING (max 5x je Phase)
+  ↓
+Pro Phase: Modell-Routing → Copilot-Bridge (Adapter A/B/C)
+           → Code-Extraktion → Unity-Watcher → Pattern-Update
+  ↓
+Phase 10 → BUILDING → COMPLETE → ARCHIVING → AWAITING_FEEDBACK → DONE
+```
+
+Eingreifen jederzeit möglich (`/pause`, `/abort`, `/manual`, Killswitch),
+aber im Default-Lauf nicht erforderlich.
 

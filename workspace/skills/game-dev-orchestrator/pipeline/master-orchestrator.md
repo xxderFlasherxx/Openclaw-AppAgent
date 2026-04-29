@@ -469,3 +469,145 @@ FUNKTION: runGameDevPipeline(userPrompt)
 
 END FUNKTION
 ```
+
+## Tick-Loop (Teil J, Schritt 32) {#tick-loop}
+
+Quelle: `AUTONOMES_GAMEDEV_SYSTEM_PLAN.txt` → Teil J, Schritt 32.
+
+Hans läuft als OpenClaw-Daemon. Der `game-dev-orchestrator` registriert
+einen Tick-Handler, der alle 5 Sekunden (konfigurierbar via
+`phases.pollingIntervalSeconds`) genau **einen** Schritt der State-
+Machine ausführt. Das macht den Lauf:
+
+* **unterbrechbar** – jeder Tick ist atomar; ein Crash zwischen Ticks
+  führt nicht zu inkonsistenten Zuständen.
+* **kontrollierbar** – `state.paused = true` lässt Ticks no-op werden.
+* **bezahlbar** – jede Aktion wird durch `enforceCostBudget()`
+  vorgeprüft (siehe [budget-limits.md](./budget-limits.md)).
+
+### Pseudocode
+
+```
+FUNKTION onTick():
+  // 1. Hard-Stops (siehe budget-limits.md, Schritt 33)
+  IF checkKillSwitch():        RETURN
+  IF enforceWallclock().halted: RETURN
+  IF enforceTotalRetries().halted: RETURN
+
+  // 2. Pause-Flag respektieren
+  IF runState.paused:
+    IF lastHeartbeatOlderThan(60s):
+      sendTelegram("⏸ Lauf pausiert seit X min")
+      runState.lastHeartbeatAt = now()
+    RETURN
+  END IF
+
+  // 3. Eingegangene Telegram-Kommandos verarbeiten
+  drainTelegramInbox()  // siehe telegram-commands.md
+
+  // 4. State-Aktion ausführen (genau eine pro Tick)
+  SWITCH runState.state:
+    CASE "WAITING":           // nichts tun
+      RETURN
+    CASE "ANALYZING":         runAnalysis();        transitionMaybe()
+    CASE "PLANNING":          callGuentherPlan();   transitionMaybe()
+    CASE "INITIALIZING":      initProject();        transitionMaybe()
+    CASE "EXECUTING":         callCopilotBridge();  transitionMaybe()
+    CASE "VERIFYING":         onVerifyPhase();      transitionMaybe()
+    CASE "CORRECTING":        applyCorrection();    transitionMaybe()
+    CASE "PHASE_DONE":        maybeAdvancePhase();  transitionMaybe()
+    CASE "BUILDING":          runUnityBuild();      transitionMaybe()
+    CASE "ARCHIVING":         archiveProject();     transitionMaybe()
+    CASE "AWAITING_FEEDBACK": waitFeedback();       transitionMaybe()
+    CASE "DONE":              cleanup();            sendCompleteSummary()
+    CASE "ABORTED":            persistPostmortem(); resetToWaiting()
+  END SWITCH
+
+  // 5. State persistieren (atomar)
+  persistState()
+ENDE
+```
+
+### Atomare Persistenz
+
+Nach **jedem** State-Übergang schreibt Hans zwei Dateien:
+
+| Datei                                            | Inhalt                                              |
+|--------------------------------------------------|-----------------------------------------------------|
+| `<projectPath>/.plan/orchestrator-state.json`    | Run-spezifischer State (Phase, Attempt, Cost, …)    |
+| `workspace/memory/gamedev-state.json`            | Globaler Zeiger auf `currentProject` + `runId`      |
+
+Schreibstrategie: write-to-tmp + atomar `rename`.
+
+```
+writeJsonAtomic(path, obj):
+  tmp = path + ".tmp"
+  fs.writeFileSync(tmp, JSON.stringify(obj, null, 2) + "\n")
+  fs.fsyncSync(tmp)         // Plattendaten sicher
+  fs.renameSync(tmp, path)  // atomar gegen Crashes
+```
+
+Damit ist garantiert, dass `gamedev-state.json` entweder den vorherigen
+oder den nächsten Zustand enthält – nie etwas dazwischen.
+
+### Crash-Recovery
+
+Beim Daemon-Start (OpenClaw-Boot) prüft der Tick-Handler:
+
+```
+state = readJson(workspace/memory/gamedev-state.json)
+IF state.currentProject IS null:        RETURN  // nichts zu tun
+IF state.state IN ["DONE", "WAITING"]:  RETURN
+
+orchestratorState = readJson(state.currentProject + "/.plan/orchestrator-state.json")
+sendTelegram("Offener Run gefunden: " + state.currentProject +
+             ", State " + orchestratorState.state +
+             ", Phase " + orchestratorState.currentPhase + ".\n" +
+             "Fortsetzen mit /resume oder /abort.")
+runState.paused = true   // wartet aktiv auf Entscheidung
+```
+
+### Exception-Handling pro Tick
+
+```
+TRY:
+  onTick()
+CATCH error:
+  runState.tickFailures += 1
+  delay = [5, 30, 120][runState.tickFailures - 1] OR 120
+  scheduleNextTick(delay)
+  IF runState.tickFailures >= 3:
+    runState.state = "ABORTED"
+    runState.haltReason = "tick_exception"
+    sendTelegram("❌ 3 Tick-Fehler in Folge:\n" +
+                 truncate(error.stack, 800) +
+                 "\nLog: " + projectPath + "/.plan/")
+END TRY
+```
+
+Erfolgreicher Tick setzt `runState.tickFailures = 0`.
+
+### Telegram-Inbox-Drain
+
+`drainTelegramInbox()` liest **bis zu 5** ungelesene Nachrichten pro
+Tick (Throttling gegen Spam) und ruft für jede `parseTelegramCommand()`
+aus [telegram-commands.md](./telegram-commands.md) auf. Kommandos, die
+im aktuellen State nicht erlaubt sind, werden mit einer Hilfe-Antwort
+quittiert, ohne den State zu verändern.
+
+### Heartbeat
+
+Bei jedem Tick wird `runState.lastTickAt = now()` gesetzt. Eine externe
+`logs/config-health.json` notiert, wenn der letzte Tick > 30 Sekunden
+zurückliegt – nützlich für Monitoring.
+
+### Tests
+
+Siehe `tests/test-daemon-loop.sh`:
+
+* Reboot mitten in `EXECUTING` → Recovery-Prompt landet in Telegram-Inbox
+* Exception in `callCopilotBridge` → Backoff-Zeitplan 5/30/120 s
+* `orchestrator-state.json` wird atomar geschrieben (kein lost update
+  bei Crash zwischen `tmp` und `rename`)
+* `runState.paused = true` → Tick ist no-op
+* Tick im State `WAITING` ohne aktiven Run → keine I/O

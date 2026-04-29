@@ -164,5 +164,26 @@
     "maxBytesPerFile": 204800,
     "dryRunFirstRun": true
   },
+  "limits": {
+    "maxCostUsdPerRun": 5.00,
+    "maxCostUsdPerPhase": 1.00,
+    "maxWallclockMinutesPerRun": 180,
+    "maxRetriesPerPhase": 5,
+    "maxTotalRetriesPerRun": 25,
+    "killSwitchFile": "/home/vboxuser/.openclaw/STOP_GAMEDEV"
+  },
+  "telegram": {
+    "enabled": true,
+    "maxInboxDrainPerTick": 5,
+    "ignoreUnpairedChats": true,
+    "commandPrefix": "/",
+    "implicitNewGameOnFreeText": true
+  },
+  "daemon": {
+    "tickIntervalSeconds": 5,
+    "heartbeatLogFile": "/home/vboxuser/Documents/Openclaw-AppAgent/logs/config-health.json",
+    "exceptionBackoffSeconds": [5, 30, 120],
+    "maxConsecutiveTickFailures": 3
+  },
   "dryRun": false
 }

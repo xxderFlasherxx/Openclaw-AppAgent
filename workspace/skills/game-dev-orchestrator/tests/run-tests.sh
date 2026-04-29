@@ -752,6 +752,85 @@ for k in mode batchLogFile statusFile errorLogFile compileTimeoutSeconds; do
 done
 
 # =============================================================================
+suite "33. Teil J – Telegram-Commands (Schritt 31)"
+# =============================================================================
+assert_file_exists "$SKILL_DIR/pipeline/telegram-commands.md"        "pipeline/telegram-commands.md"
+assert_file_exists "$SCRIPT_DIR/fixtures/telegram-events.json"       "fixtures/telegram-events.json"
+for sh in test-telegram-commands.sh; do
+  assert_file_exists "$SCRIPT_DIR/$sh" "tests/$sh vorhanden"
+  if bash -n "$SCRIPT_DIR/$sh" 2>/dev/null; then
+    _log_pass "Bash-Syntax OK: $sh"
+  else
+    _log_fail "Bash-Syntax OK: $sh" "Syntaxfehler"
+  fi
+  out="$TMP_ROOT/${sh%.sh}.log"
+  if bash "$SCRIPT_DIR/$sh" > "$out" 2>&1; then
+    _log_pass "Sub-Tests durchgelaufen: $sh"
+  else
+    _log_fail "Sub-Tests durchgelaufen: $sh" "siehe $out"
+  fi
+done
+for blk in telegram; do
+  assert_jq_nonempty "$CFG" ".${blk}" "gamedev-config.json hat Block '${blk}'"
+done
+
+# =============================================================================
+suite "34. Teil J – Daemon-Loop & Persistenz (Schritt 32)"
+# =============================================================================
+for sh in test-daemon-loop.sh; do
+  assert_file_exists "$SCRIPT_DIR/$sh" "tests/$sh vorhanden"
+  if bash -n "$SCRIPT_DIR/$sh" 2>/dev/null; then
+    _log_pass "Bash-Syntax OK: $sh"
+  else
+    _log_fail "Bash-Syntax OK: $sh" "Syntaxfehler"
+  fi
+  out="$TMP_ROOT/${sh%.sh}.log"
+  if bash "$SCRIPT_DIR/$sh" > "$out" 2>&1; then
+    _log_pass "Sub-Tests durchgelaufen: $sh"
+  else
+    _log_fail "Sub-Tests durchgelaufen: $sh" "siehe $out"
+  fi
+done
+for blk in daemon; do
+  assert_jq_nonempty "$CFG" ".${blk}" "gamedev-config.json hat Block '${blk}'"
+done
+# master-orchestrator.md hat Tick-Loop-Sektion
+if grep -q "Tick-Loop" "$SKILL_DIR/pipeline/master-orchestrator.md"; then
+  _log_pass "master-orchestrator.md enthält Tick-Loop"
+else
+  _log_fail "master-orchestrator.md enthält Tick-Loop" "Sektion fehlt"
+fi
+
+# =============================================================================
+suite "35. Teil J – Limits & Killswitch (Schritt 33)"
+# =============================================================================
+assert_file_exists "$SKILL_DIR/pipeline/budget-limits.md"            "pipeline/budget-limits.md"
+assert_file_exists "$SCRIPT_DIR/fixtures/limits-cases.json"          "fixtures/limits-cases.json"
+assert_file_exists "$SCRIPT_DIR/fixtures/halt-log-entry.schema.json" "fixtures/halt-log-entry.schema.json"
+for sh in test-limits.sh; do
+  assert_file_exists "$SCRIPT_DIR/$sh" "tests/$sh vorhanden"
+  if bash -n "$SCRIPT_DIR/$sh" 2>/dev/null; then
+    _log_pass "Bash-Syntax OK: $sh"
+  else
+    _log_fail "Bash-Syntax OK: $sh" "Syntaxfehler"
+  fi
+  out="$TMP_ROOT/${sh%.sh}.log"
+  if bash "$SCRIPT_DIR/$sh" > "$out" 2>&1; then
+    _log_pass "Sub-Tests durchgelaufen: $sh"
+  else
+    _log_fail "Sub-Tests durchgelaufen: $sh" "siehe $out"
+  fi
+done
+for blk in limits; do
+  assert_jq_nonempty "$CFG" ".${blk}" "gamedev-config.json hat Block '${blk}'"
+done
+# Plan-konforme Defaults
+assert_jq "$CFG" '.limits.maxCostUsdPerRun'         "5.00" "limits.maxCostUsdPerRun = 5.00"
+assert_jq "$CFG" '.limits.maxWallclockMinutesPerRun' "180" "limits.maxWallclockMinutesPerRun = 180"
+assert_jq "$CFG" '.limits.maxTotalRetriesPerRun'    "25"   "limits.maxTotalRetriesPerRun = 25"
+
+
+# =============================================================================
 # Opt-in: Online-Checks (nur mit --online)
 # =============================================================================
 if [ "$ONLINE" -eq 1 ]; then
