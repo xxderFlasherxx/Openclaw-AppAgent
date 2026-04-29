@@ -626,3 +626,61 @@ Drei neue Top-Level-Blöcke (Teil H):
 - `copilotBridge` — Adapter-Reihenfolge, VS Code Task, Timeout
 - `codeExtraction` — Fence/Preamble-Stripping, verbotene Tokens, Diff-Dir
 - `safety` — writeScope/denyScope, Approval-Modus, Limits, Dry-Run
+
+
+## Unity-Runtime-Watcher (Teil I)
+
+Mit Teil I bekommt Hans **Augen** im Unity-Editor. Drei Bausteine:
+
+### 1. AutoCompileWatcher deployen (Schritt 28)
+
+Detailliert in: `pipeline/unity-watcher.md` und `pipeline/project-init.md`
+
+- Editor-Script `templates/AutoCompileWatcher.cs.txt` wird vom
+  `project-initializer` automatisch nach `Assets/Editor/AutoCompileWatcher.cs`
+  kopiert.
+- Schreibt atomar nach `.plan/unity-status.json` (überschreibt) und
+  appendet NDJSON nach `.plan/error-log.jsonl` (eine Zeile pro Fehler).
+- Hört auf `CompilationPipeline.compilationStarted/-Finished` +
+  `Application.logMessageReceived` (Runtime-Errors).
+
+### 2. Batchmode-Fallback (Schritt 29)
+
+Detailliert in: `pipeline/unity-watcher.md` Sektion *Batchmode*
+
+- Wenn Editor nicht läuft, startet Hans Unity im Batchmode mit
+  `OpenClaw.BatchCompile.Run` (`templates/BatchCompile.cs.txt`).
+- `parseBatchLog()` erkennt `error CS\d{4}`, `Compilation succeeded`,
+  `Aborting batchmode due to failure`, Timeout.
+- Erzeugt synthetisches `unity-status.json` + füttert `error-log.jsonl`,
+  damit der Rest der Pipeline batch- vs. editor-agnostisch bleibt.
+- `unity.mode`-Werte: `editor | batch | auto` (Default `auto`).
+
+### 3. Fehler-Pipeline Unity → Hans → Günther (Schritt 30)
+
+Detailliert in: `pipeline/error-correction.md` Sektion *Wiring*
+
+- `onVerifyPhase()` liest `unity-status.json` + `tail(error-log.jsonl)`,
+  ruft Günther mit `analyzeError(payload)` auf, erhält
+  `correctionPrompt` + `severity`.
+- `selectModel()` eskaliert bei `severity=critical` oder
+  `retryCount >= escalateAtRetry` zu Opus.
+- `logRoutingDecision()` schreibt einen separaten Eintrag pro
+  Korrektur-Call ins `model-usage.json` (Kosten-Tracking).
+
+### Tests (Teil I)
+
+- `tests/test-unity-watcher.sh`   → Schema, Cursor-basiertes `tail`
+- `tests/test-unity-batchmode.sh` → Log-Parser (Success/Error/Timeout)
+- `tests/test-error-pipeline.sh`  → CS0246 → "using"-Hinweis,
+  NullRef → Major-Severity, 5x Retry → User-Hilfe
+
+### Erweiterte Config (`gamedev-config.json`)
+
+Im `unity`-Block (Teil I):
+- `mode` — `editor | batch | auto`
+- `batchLogFile` — `.plan/unity-batch.log`
+- `statusFile` — `.plan/unity-status.json`
+- `errorLogFile` — `.plan/error-log.jsonl`
+- `compileTimeoutSeconds` — Default 180
+

@@ -99,10 +99,10 @@
   },
   "memory": {
     "enabled": true,
-    "projectsFile": "/home/vboxuser/.openclaw/workspace/memory/gamedev-projects.json",
-    "patternsFile": "/home/vboxuser/.openclaw/workspace/memory/gamedev-patterns.json",
-    "archiveFile":  "/home/vboxuser/.openclaw/workspace/memory/gamedev-projects-archive.json",
-    "lockFile":     "/home/vboxuser/.openclaw/workspace/memory/.memory.lock",
+    "projectsFile": "/home/vboxuser/Documents/Openclaw-AppAgent/workspace/memory/gamedev-projects.json",
+    "patternsFile": "/home/vboxuser/Documents/Openclaw-AppAgent/workspace/memory/gamedev-patterns.json",
+    "archiveFile": "/home/vboxuser/Documents/Openclaw-AppAgent/workspace/memory/gamedev-projects-archive.json",
+    "lockFile": "/home/vboxuser/Documents/Openclaw-AppAgent/workspace/memory/.memory.lock",
     "maxProjectsInMemory": 100,
     "minPatternSuccessRate": 0.3,
     "patternUseThreshold": 2,
@@ -148,15 +148,15 @@
   },
   "safety": {
     "writeScope": [
-      "~/GameDev-Projekte/<projectName>/**",
-      "~/.openclaw/workspace/memory/gamedev-*.json"
+      "/home/vboxuser/GameDev-Projekte/<projectName>/**",
+      "/home/vboxuser/Documents/Openclaw-AppAgent/workspace/memory/gamedev-*.json"
     ],
     "denyScope": [
       "~/.ssh/**",
       "/etc/**",
       "/usr/**",
       "~/.config/**",
-      "~/.openclaw/openclaw.json"
+      "/home/vboxuser/Documents/Openclaw-AppAgent/openclaw.json"
     ],
     "approvalMode": "auto-with-telegram-veto",
     "vetoWindowSeconds": 20,
